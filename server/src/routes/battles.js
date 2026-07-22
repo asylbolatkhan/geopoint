@@ -42,10 +42,14 @@ export async function expireDueBattles() {
     }
     const challenger = await studentById(b.challenger_id);
     const opponent = await studentById(b.opponent_id);
-    if (challenger && opponent && b.challenger_result && !b.opponent_result) {
-      notify(challenger.tg_user_id, M[challenger.lang].battleExpired(opponent.name), challenger.lang);
-      notify(opponent.tg_user_id, M[opponent.lang].battleExpiredIdle(challenger.name), opponent.lang);
-    }
+    if (!challenger || !opponent) continue;
+    const cDone = !!b.challenger_result;
+    const oDone = !!b.opponent_result;
+    if (cDone === oDone) continue; // ұпай жазылған жоқ — хабарлама да жіберілмейді
+    const submitted = cDone ? challenger : opponent;
+    const idle = cDone ? opponent : challenger;
+    notify(submitted.tg_user_id, M[submitted.lang].battleExpired(idle.name), submitted.lang);
+    notify(idle.tg_user_id, M[idle.lang].battleExpiredIdle(submitted.name), idle.lang);
   }
   return rows.length;
 }
@@ -85,7 +89,9 @@ battlesRouter.post('/', async (req, res, next) => {
     const { opponentId } = req.body || {};
     const config = parseGameConfig(req.body?.config);
     if (!config) return res.status(400).json({ error: 'bad_config' });
-    const opponent = await studentById(Number(opponentId));
+    const opponentIdNum = Number(opponentId);
+    if (!Number.isInteger(opponentIdNum)) return res.status(400).json({ error: 'bad_opponent' });
+    const opponent = await studentById(opponentIdNum);
     if (!opponent || opponent.status !== 'approved' || opponent.role !== 'student' ||
         opponent.id === req.student.id) {
       return res.status(400).json({ error: 'bad_opponent' });
