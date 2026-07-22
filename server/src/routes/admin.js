@@ -5,6 +5,7 @@ import { notify } from '../bot.js';
 import { M } from '../messages.js';
 import { monthKey } from '../points.js';
 import { correctIndexes } from '../quiz.js';
+import { CONTINENTS } from '../../../shared/data/index.js';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -31,6 +32,10 @@ adminRouter.post('/students/:id/approve', async (req, res, next) => {
     if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
     const classId = req.body?.classId ? Number(req.body.classId) : null;
     if (classId !== null && !Number.isInteger(classId)) return res.status(400).json({ error: 'bad_class' });
+    if (classId !== null) {
+      const cls = await query('SELECT id FROM classes WHERE id = $1', [classId]);
+      if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
+    }
     const { rows } = await query(
       `UPDATE students SET status = 'approved', class_id = COALESCE($2, class_id)
        WHERE id = $1 AND status = 'pending' RETURNING *`,
@@ -189,11 +194,23 @@ adminRouter.get('/stats', async (req, res, next) => {
     );
 
     // Ең жиі қателесетін елдер: соңғы аяқталған ойындардың жауаптарын JS-пен санаймыз
+    const CONTINENT_OF = new Map();
+    for (const [key, list] of Object.entries(CONTINENTS)) {
+      for (const c of list) if (!CONTINENT_OF.has(c.id)) CONTINENT_OF.set(c.id, key);
+    }
+    const contStats = new Map(); // continent -> { asked, missed }
     const misses = new Map();
     const tally = (questions, answers, seed) => {
       if (!Array.isArray(answers)) return;
       const correct = correctIndexes(questions, seed);
       questions.forEach((q, i) => {
+        const continent = CONTINENT_OF.get(q.countryId);
+        if (continent) {
+          const s = contStats.get(continent) || { asked: 0, missed: 0 };
+          s.asked += 1;
+          if (answers[i] !== correct[i]) s.missed += 1;
+          contStats.set(continent, s);
+        }
         if (answers[i] !== correct[i]) misses.set(q.countryId, (misses.get(q.countryId) || 0) + 1);
       });
     };
@@ -216,6 +233,15 @@ adminRouter.get('/stats', async (req, res, next) => {
       .sort((a, b) => b.misses - a.misses)
       .slice(0, 15);
 
+    const continents = [...contStats.entries()]
+      .map(([continent, s]) => ({
+        continent,
+        asked: s.asked,
+        missed: s.missed,
+        accuracy: Math.round((1 - s.missed / s.asked) * 100),
+      }))
+      .sort((a, b) => a.accuracy - b.accuracy);
+
     const { rows: inactive } = await query(
       `SELECT s.id, s.name, c.name AS class_name
        FROM students s JOIN classes c ON c.id = s.class_id
@@ -228,6 +254,6 @@ adminRouter.get('/stats', async (req, res, next) => {
        ORDER BY c.name, s.name`
     );
 
-    res.json({ students, missed, inactive7d: inactive });
+    res.json({ students, continents, missed, inactive7d: inactive });
   } catch (e) { next(e); }
 });
