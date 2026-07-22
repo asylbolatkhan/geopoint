@@ -4,6 +4,7 @@ import { auth } from './authMiddleware.js';
 import { authRouter } from './routes/auth.js';
 import { soloRouter } from './routes/solo.js';
 import { battlesRouter, expireDueBattles } from './routes/battles.js';
+import { leaderboardRouter } from './routes/leaderboard.js';
 import { startBot } from './bot.js';
 
 const app = express();
@@ -15,6 +16,7 @@ app.use('/api', auth);
 app.use('/api', authRouter);
 app.use('/api/solo', soloRouter);
 app.use('/api/battles', battlesRouter);
+app.use('/api/leaderboard', leaderboardRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
