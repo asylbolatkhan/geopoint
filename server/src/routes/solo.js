@@ -4,6 +4,7 @@ import { requireApproved } from '../authMiddleware.js';
 import { parseGameConfig, generateQuestions, renderForPlayer, scoreAnswers } from '../quiz.js';
 import { awardPoints } from '../points.js';
 import { POINTS, TIMEZONE } from '../config.js';
+import { isDbId } from '../ids.js';
 
 export const soloRouter = Router();
 soloRouter.use(requireApproved);
@@ -30,9 +31,11 @@ soloRouter.post('/start', async (req, res, next) => {
 soloRouter.post('/:id/submit', async (req, res, next) => {
   try {
     const gameId = Number(req.params.id);
-    if (!Number.isInteger(gameId)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(gameId)) return res.status(404).json({ error: 'not_found' });
     const { answers, durationMs } = req.body || {};
     const result = await withTransaction(async (client) => {
+      // Бір оқушының барлық submit-тері тізбектеле орындалады — күндік шек айналып өтілмейді
+      await client.query('SELECT pg_advisory_xact_lock($1)', [req.student.id]);
       const { rows } = await client.query(
         'SELECT * FROM solo_games WHERE id = $1 AND student_id = $2 FOR UPDATE',
         [gameId, req.student.id]
@@ -40,7 +43,8 @@ soloRouter.post('/:id/submit', async (req, res, next) => {
       const game = rows[0];
       if (!game) return { code: 404, body: { error: 'not_found' } };
       if (game.status === 'completed') return { code: 409, body: { error: 'already_submitted' } };
-      if (!Array.isArray(answers) || answers.length !== game.total) {
+      if (!Array.isArray(answers) || answers.length !== game.total ||
+          !answers.every((a) => a === null || (Number.isInteger(a) && a >= 0 && a <= 3))) {
         return { code: 400, body: { error: 'bad_answers' } };
       }
       const { correct, correctOptionIndexes } = scoreAnswers(game.questions, answers, gameId);

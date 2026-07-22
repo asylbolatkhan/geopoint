@@ -6,6 +6,7 @@ import { M } from '../messages.js';
 import { monthKey } from '../points.js';
 import { correctIndexes } from '../quiz.js';
 import { CONTINENTS } from '../../../shared/data/index.js';
+import { isDbId } from '../ids.js';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -29,9 +30,9 @@ adminRouter.get('/pending', async (req, res, next) => {
 adminRouter.post('/students/:id/approve', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const classId = req.body?.classId ? Number(req.body.classId) : null;
-    if (classId !== null && !Number.isInteger(classId)) return res.status(400).json({ error: 'bad_class' });
+    if (classId !== null && !isDbId(classId)) return res.status(400).json({ error: 'bad_class' });
     if (classId !== null) {
       const cls = await query('SELECT id FROM classes WHERE id = $1', [classId]);
       if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
@@ -50,7 +51,7 @@ adminRouter.post('/students/:id/approve', async (req, res, next) => {
 adminRouter.post('/students/:id/reject', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const student = await studentById(id);
     if (!student || student.status !== 'pending') return res.status(404).json({ error: 'not_found' });
     await query('DELETE FROM students WHERE id = $1', [student.id]);
@@ -78,9 +79,9 @@ adminRouter.get('/students', async (req, res, next) => {
 adminRouter.patch('/students/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const classId = Number(req.body?.classId);
-    if (!Number.isInteger(classId)) return res.status(400).json({ error: 'bad_class' });
+    if (!isDbId(classId)) return res.status(400).json({ error: 'bad_class' });
     const cls = await query('SELECT id FROM classes WHERE id = $1', [classId]);
     if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
     const { rows } = await query(
@@ -95,7 +96,7 @@ adminRouter.patch('/students/:id', async (req, res, next) => {
 adminRouter.delete('/students/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const { rowCount } = await query(
       `DELETE FROM students WHERE id = $1 AND role = 'student'`, [id]
     );
@@ -107,7 +108,7 @@ adminRouter.delete('/students/:id', async (req, res, next) => {
 adminRouter.get('/students/:id/points', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const { rows } = await query(
       `SELECT id, amount, reason, ref_id, month_key, created_at
        FROM points_events WHERE student_id = $1
@@ -121,7 +122,7 @@ adminRouter.get('/students/:id/points', async (req, res, next) => {
 adminRouter.delete('/points/:eventId', async (req, res, next) => {
   try {
     const eventId = Number(req.params.eventId);
-    if (!Number.isInteger(eventId)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(eventId)) return res.status(404).json({ error: 'not_found' });
     const { rowCount } = await query(
       'DELETE FROM points_events WHERE id = $1', [eventId]
     );
@@ -161,7 +162,7 @@ adminRouter.post('/classes', async (req, res, next) => {
 adminRouter.delete('/classes/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const used = await query('SELECT 1 FROM students WHERE class_id = $1 LIMIT 1', [id]);
     if (used.rows[0]) return res.status(409).json({ error: 'not_empty' });
     const { rowCount } = await query('DELETE FROM classes WHERE id = $1', [id]);

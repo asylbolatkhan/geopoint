@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { requireApproved } from '../authMiddleware.js';
 import { notifyAdmins } from '../bot.js';
 import { M } from '../messages.js';
+import { isDbId } from '../ids.js';
 
 export const authRouter = Router();
 
@@ -26,13 +27,19 @@ authRouter.post('/register', async (req, res, next) => {
     }
     if (!['kk', 'ru'].includes(lang)) return res.status(400).json({ error: 'bad_lang' });
     const classIdNum = Number(classId);
-    if (!Number.isInteger(classIdNum)) return res.status(400).json({ error: 'bad_class' });
+    if (!isDbId(classIdNum)) return res.status(400).json({ error: 'bad_class' });
     const cls = await query('SELECT id, name FROM classes WHERE id = $1', [classIdNum]);
     if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
-    const { rows } = await query(
-      'INSERT INTO students (tg_user_id, name, class_id, lang) VALUES ($1, $2, $3, $4) RETURNING *',
-      [req.tgUser.id, name.trim(), classIdNum, lang]
-    );
+    let rows;
+    try {
+      ({ rows } = await query(
+        'INSERT INTO students (tg_user_id, name, class_id, lang) VALUES ($1, $2, $3, $4) RETURNING *',
+        [req.tgUser.id, name.trim(), classIdNum, lang]
+      ));
+    } catch (e) {
+      if (e.code === '23505') return res.status(409).json({ error: 'already_registered' });
+      throw e;
+    }
     notifyAdmins((adminLang) => M[adminLang].newPending(name.trim(), cls.rows[0].name));
     res.json({ student: rows[0] });
   } catch (e) { next(e); }

@@ -9,6 +9,7 @@ import { awardPoints } from '../points.js';
 import { notify } from '../bot.js';
 import { M } from '../messages.js';
 import { BATTLE, TIMEZONE } from '../config.js';
+import { isDbId } from '../ids.js';
 
 export const battlesRouter = Router();
 battlesRouter.use(requireApproved);
@@ -29,29 +30,45 @@ async function studentById(id) {
 }
 
 export async function expireDueBattles() {
-  const { rows } = await query(
-    `UPDATE battles SET status = 'expired'
-     WHERE status = 'awaiting_opponent' AND expires_at < now()
-     RETURNING *`
+  const { rows: due } = await query(
+    `SELECT id FROM battles WHERE status = 'awaiting_opponent' AND expires_at < now()`
   );
-  for (const b of rows) {
-    const events = unansweredPointsEvents(!!b.challenger_result, !!b.opponent_result);
-    for (const e of events) {
-      const studentId = e.who === 'challenger' ? b.challenger_id : b.opponent_id;
-      await awardPoints(studentId, e.amount, e.reason, b.id);
+  let expired = 0;
+  for (const { id } of due) {
+    try {
+      const b = await withTransaction(async (client) => {
+        const { rows } = await client.query(
+          `UPDATE battles SET status = 'expired'
+           WHERE id = $1 AND status = 'awaiting_opponent'
+           RETURNING *`,
+          [id]
+        );
+        const battle = rows[0];
+        if (!battle) return null; // басқа процесс үлгеріп қойған
+        const events = unansweredPointsEvents(!!battle.challenger_result, !!battle.opponent_result);
+        for (const e of events) {
+          const studentId = e.who === 'challenger' ? battle.challenger_id : battle.opponent_id;
+          await awardPoints(studentId, e.amount, e.reason, battle.id, client);
+        }
+        return battle;
+      });
+      if (!b) continue;
+      expired++;
+      const challenger = await studentById(b.challenger_id);
+      const opponent = await studentById(b.opponent_id);
+      if (!challenger || !opponent) continue;
+      const cDone = !!b.challenger_result;
+      const oDone = !!b.opponent_result;
+      if (cDone === oDone) continue; // ұпай жазылған жоқ — хабарлама да жіберілмейді
+      const submitted = cDone ? challenger : opponent;
+      const idle = cDone ? opponent : challenger;
+      notify(submitted.tg_user_id, M[submitted.lang].battleExpired(idle.name), submitted.lang);
+      notify(idle.tg_user_id, M[idle.lang].battleExpiredIdle(submitted.name), idle.lang);
+    } catch (e) {
+      console.error('expire battle failed:', id, e.message);
     }
-    const challenger = await studentById(b.challenger_id);
-    const opponent = await studentById(b.opponent_id);
-    if (!challenger || !opponent) continue;
-    const cDone = !!b.challenger_result;
-    const oDone = !!b.opponent_result;
-    if (cDone === oDone) continue; // ұпай жазылған жоқ — хабарлама да жіберілмейді
-    const submitted = cDone ? challenger : opponent;
-    const idle = cDone ? opponent : challenger;
-    notify(submitted.tg_user_id, M[submitted.lang].battleExpired(idle.name), submitted.lang);
-    notify(idle.tg_user_id, M[idle.lang].battleExpiredIdle(submitted.name), idle.lang);
   }
-  return rows.length;
+  return expired;
 }
 
 function summarize(b, myId) {
@@ -90,7 +107,7 @@ battlesRouter.post('/', async (req, res, next) => {
     const config = parseGameConfig(req.body?.config);
     if (!config) return res.status(400).json({ error: 'bad_config' });
     const opponentIdNum = Number(opponentId);
-    if (!Number.isInteger(opponentIdNum)) return res.status(400).json({ error: 'bad_opponent' });
+    if (!isDbId(opponentIdNum)) return res.status(400).json({ error: 'bad_opponent' });
     const opponent = await studentById(opponentIdNum);
     if (!opponent || opponent.status !== 'approved' || opponent.role !== 'student' ||
         opponent.id === req.student.id) {
@@ -136,7 +153,7 @@ battlesRouter.get('/', async (req, res, next) => {
 battlesRouter.get('/:id', async (req, res, next) => {
   try {
     const battleId = Number(req.params.id);
-    if (!Number.isInteger(battleId)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(battleId)) return res.status(404).json({ error: 'not_found' });
     await expireDueBattles();
     const { rows } = await query(`${listSql} AND b.id = $2`, [req.student.id, battleId]);
     const b = rows[0];
@@ -160,7 +177,7 @@ battlesRouter.get('/:id', async (req, res, next) => {
 battlesRouter.post('/:id/submit', async (req, res, next) => {
   try {
     const battleId = Number(req.params.id);
-    if (!Number.isInteger(battleId)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(battleId)) return res.status(404).json({ error: 'not_found' });
     const { answers, durationMs } = req.body || {};
     const result = await withTransaction(async (client) => {
       const { rows } = await client.query(
@@ -175,14 +192,18 @@ battlesRouter.post('/:id/submit', async (req, res, next) => {
       if (isChallenger ? b.challenger_result : b.opponent_result) {
         return { code: 409, body: { error: 'already_submitted' } };
       }
-      if (!Array.isArray(answers) || answers.length !== b.questions.length) {
+      if (!Array.isArray(answers) || answers.length !== b.questions.length ||
+          !answers.every((a) => a === null || (Number.isInteger(a) && a >= 0 && a <= 3))) {
         return { code: 400, body: { error: 'bad_answers' } };
       }
       const seed = isChallenger ? challengerSeed(b.id) : opponentSeed(b.id);
       const { correct } = scoreAnswers(b.questions, answers, seed);
       const myResult = {
         answers, correct,
-        durationMs: Math.max(0, Number(durationMs) || 0),
+        durationMs: Math.min(
+          Math.max(0, Number(durationMs) || 0),
+          b.questions.length * BATTLE.questionSeconds * 1000
+        ),
         submittedAt: new Date().toISOString(),
       };
       const col = isChallenger ? 'challenger_result' : 'opponent_result';
@@ -234,7 +255,7 @@ battlesRouter.post('/:id/submit', async (req, res, next) => {
 battlesRouter.post('/:id/decline', async (req, res, next) => {
   try {
     const battleId = Number(req.params.id);
-    if (!Number.isInteger(battleId)) return res.status(404).json({ error: 'not_found' });
+    if (!isDbId(battleId)) return res.status(404).json({ error: 'not_found' });
     const outcome = await withTransaction(async (client) => {
       const { rows } = await client.query('SELECT * FROM battles WHERE id = $1 FOR UPDATE', [battleId]);
       const b = rows[0];
