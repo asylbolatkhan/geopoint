@@ -43,5 +43,5 @@ export function startBot() {
     await ctx.reply(M[lang].start, { reply_markup: webAppKeyboard(lang) });
   });
   bot.catch((err) => console.error('bot error:', err.message));
-  bot.start(); // long polling; returns a promise that resolves on stop — intentionally not awaited
+  bot.start().catch((e) => console.error('bot start failed:', e.message));
 }

@@ -22,10 +22,13 @@ export async function auth(req, res, next) {
     if (!student && String(tgUser.id) === process.env.ADMIN_TG_ID) {
       ({ rows } = await query(
         `INSERT INTO students (tg_user_id, name, class_id, status, role)
-         VALUES ($1, $2, NULL, 'approved', 'admin') RETURNING *`,
+         VALUES ($1, $2, NULL, 'approved', 'admin')
+         ON CONFLICT (tg_user_id) DO NOTHING
+         RETURNING *`,
         [tgUser.id, tgUser.first_name || 'Admin']
       ));
-      student = rows[0];
+      student = rows[0]
+        ?? (await query('SELECT * FROM students WHERE tg_user_id = $1', [tgUser.id])).rows[0];
     }
     req.student = student;
     next();

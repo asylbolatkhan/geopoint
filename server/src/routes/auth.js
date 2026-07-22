@@ -25,11 +25,13 @@ authRouter.post('/register', async (req, res, next) => {
       return res.status(400).json({ error: 'bad_name' });
     }
     if (!['kk', 'ru'].includes(lang)) return res.status(400).json({ error: 'bad_lang' });
-    const cls = await query('SELECT id, name FROM classes WHERE id = $1', [classId]);
+    const classIdNum = Number(classId);
+    if (!Number.isInteger(classIdNum)) return res.status(400).json({ error: 'bad_class' });
+    const cls = await query('SELECT id, name FROM classes WHERE id = $1', [classIdNum]);
     if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
     const { rows } = await query(
       'INSERT INTO students (tg_user_id, name, class_id, lang) VALUES ($1, $2, $3, $4) RETURNING *',
-      [req.tgUser.id, name.trim(), classId, lang]
+      [req.tgUser.id, name.trim(), classIdNum, lang]
     );
     notifyAdmins((adminLang) => M[adminLang].newPending(name.trim(), cls.rows[0].name));
     res.json({ student: rows[0] });
@@ -38,7 +40,7 @@ authRouter.post('/register', async (req, res, next) => {
 
 authRouter.get('/students', requireApproved, async (req, res, next) => {
   try {
-    const classId = req.query.classId ? Number(req.query.classId) : null;
+    const classId = Number.isInteger(Number(req.query.classId)) && req.query.classId !== '' && req.query.classId !== undefined ? Number(req.query.classId) : null;
     const q = req.query.q ? String(req.query.q) : null;
     const { rows } = await query(
       `SELECT s.id, s.name, c.name AS class_name
