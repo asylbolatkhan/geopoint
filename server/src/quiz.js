@@ -35,6 +35,9 @@ export function parseGameConfig(body, { allowAll = false } = {}) {
   return { continents, questionTypes, count };
 }
 
+// Non-deterministic: generates fresh questions each time. Must be called exactly once
+// per game, with the result persisted. Rendering and scoring must reuse the stored
+// array, never regenerate from this function.
 export function generateQuestions({ continents, questionTypes, count }) {
   const all = getCountries(continents);
   const n = count === 'all' ? all.length : Math.min(count, all.length);
@@ -55,6 +58,9 @@ export function generateQuestions({ continents, questionTypes, count }) {
         ['kk', 'ru'].some((lang) => answerValue(w, field, lang) === answerValue(c, field, lang))
       );
       if (!clashesCorrect && !clashesWrong) wrong.push(c);
+    }
+    if (wrong.length < 3) {
+      throw new Error(`not enough distinct options for ${country.id}/${type}`);
     }
     return { countryId: country.id, type, wrongIds: wrong.map((c) => c.id) };
   });

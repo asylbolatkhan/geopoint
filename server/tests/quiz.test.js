@@ -97,3 +97,17 @@ describe('parseGameConfig', () => {
     expect(parseGameConfig({ continents: ['asia'], questionTypes: ['flag-country'], count: 'all' }, { allowAll: true })).toBeTruthy();
   });
 });
+
+describe('generateQuestions on small continents', () => {
+  it('always finds 3 distinct wrong options (southamerica, oceania, all types)', () => {
+    for (const continent of ['southamerica', 'oceania']) {
+      for (const type of QUESTION_TYPES) {
+        // 5 repeats since generation is random
+        for (let i = 0; i < 5; i++) {
+          const qs = generateQuestions({ continents: [continent], questionTypes: [type], count: 10 });
+          for (const q of qs) expect(q.wrongIds).toHaveLength(3);
+        }
+      }
+    }
+  });
+});
