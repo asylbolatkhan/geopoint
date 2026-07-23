@@ -7,6 +7,7 @@ import Card from './components/Card';
 import TabBar from './components/TabBar';
 import RegisterScreen from './screens/RegisterScreen';
 import PendingScreen from './screens/PendingScreen';
+import PlayTab from './screens/PlayTab';
 
 const notInTelegram = getAuthHeader() === '';
 
@@ -69,7 +70,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <div className="max-w-md mx-auto p-4 pb-20">
-        {active === 'play' && <Card>{t.tabPlay}…</Card>}
+        {active === 'play' && <PlayTab lang={lang} />}
         {active === 'battles' && <Card>{t.tabBattles}…</Card>}
         {active === 'rating' && <Card>{t.tabRating}…</Card>}
         {active === 'profile' && <Card>{t.tabProfile}…</Card>}
