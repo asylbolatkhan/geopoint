@@ -15,6 +15,7 @@ export const BATTLE = {
   dailyPerOpponent: 3,
   questionSeconds: 15,
   counts: [10, 15, 20],
+  teacherChallengeTopN: 3, // оқушы мұғалімге тек алдыңғы айдың топ-3-інде болса ғана батл тастай алады
 };
 
 export const TIMEZONE = 'Asia/Almaty';

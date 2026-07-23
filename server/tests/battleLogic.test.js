@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolveBattle, completedPointsEvents, unansweredPointsEvents, declinePointsEvents,
+  challengeEligibility,
 } from '../src/battleLogic.js';
 import { POINTS } from '../src/config.js';
 
@@ -63,5 +64,35 @@ describe('declinePointsEvents', () => {
     const ev = declinePointsEvents();
     expect(find(ev, 'challenger', 'battle_expired_bonus').amount).toBe(POINTS.battleExpiredBonus);
     expect(find(ev, 'opponent', 'battle_expired_penalty').amount).toBe(POINTS.battleExpiredPenalty);
+  });
+});
+
+describe('challengeEligibility', () => {
+  it('student -> student is ok', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'student', challengerIsTop: false })).toBe('ok');
+  });
+  it('teacher -> teacher is ok', () => {
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'teacher', challengerIsTop: false })).toBe('ok');
+  });
+  it('teacher -> student is ok', () => {
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'student', challengerIsTop: false })).toBe('ok');
+  });
+  it('admin -> teacher is ok', () => {
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'teacher', challengerIsTop: false })).toBe('ok');
+  });
+  it('admin -> student is ok', () => {
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'student', challengerIsTop: false })).toBe('ok');
+  });
+  it('student -> teacher: ok when challenger is top-3 of previous month', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: true })).toBe('ok');
+  });
+  it('student -> teacher: not eligible when challenger is not top-3', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: false }))
+      .toBe('not_eligible_teacher_battle');
+  });
+  it('anyone -> admin is a bad opponent', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'admin', challengerIsTop: false })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'admin', challengerIsTop: false })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'admin', challengerIsTop: false })).toBe('bad_opponent');
   });
 });

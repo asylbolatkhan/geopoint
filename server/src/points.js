@@ -9,6 +9,12 @@ export function monthKey(date = new Date()) {
   return `${get('year')}-${get('month')}`;
 }
 
+// 'YYYY-MM' → алдыңғы айдың кілті ('2026-01' → '2025-12')
+export function prevMonthKey(key = monthKey()) {
+  const [y, m] = key.split('-').map(Number);
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+}
+
 export async function awardPoints(studentId, amount, reason, refId = null, client = null) {
   const runner = client ?? { query };
   await runner.query(

@@ -3,7 +3,7 @@ import {
   QUESTION_TYPES, generateQuestions, renderForPlayer,
   correctIndexes, scoreAnswers, parseGameConfig,
 } from '../src/quiz.js';
-import { COUNTRY_BY_ID } from '../../shared/data/index.js';
+import { CONTINENTS, COUNTRY_BY_ID } from '../../shared/data/index.js';
 
 const CONFIG = { continents: ['europe'], questionTypes: [...QUESTION_TYPES], count: 15 };
 
@@ -95,6 +95,19 @@ describe('parseGameConfig', () => {
     expect(parseGameConfig({ continents: ['asia'], questionTypes: ['flag-country'], count: 7 })).toBeNull();
     expect(parseGameConfig({ continents: ['asia'], questionTypes: ['flag-country'], count: 'all' })).toBeNull();
     expect(parseGameConfig({ continents: ['asia'], questionTypes: ['flag-country'], count: 'all' }, { allowAll: true })).toBeTruthy();
+    expect(parseGameConfig({ continents: ['europe', 'asia'], questionTypes: ['flag-country'], count: 10 })).toBeTruthy();
+  });
+});
+
+describe('generateQuestions with multiple continents', () => {
+  it('only draws countryIds from the union of the requested continents', () => {
+    const allowedIds = new Set(
+      [...CONTINENTS.europe, ...CONTINENTS.asia].map((c) => c.id)
+    );
+    const qs = generateQuestions({ continents: ['europe', 'asia'], questionTypes: [...QUESTION_TYPES], count: 20 });
+    for (const q of qs) {
+      expect(allowedIds.has(q.countryId)).toBe(true);
+    }
   });
 });
 

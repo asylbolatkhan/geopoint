@@ -47,6 +47,15 @@ export function unansweredPointsEvents(challengerSubmitted, opponentSubmitted) {
   ];
 }
 
+// Батл тастау рұқсаты: 'ok' | 'bad_opponent' | 'not_eligible_teacher_battle'
+export function challengeEligibility({ challengerRole, opponentRole, challengerIsTop }) {
+  if (opponentRole !== 'student' && opponentRole !== 'teacher') return 'bad_opponent';
+  if (challengerRole === 'student' && opponentRole === 'teacher' && !challengerIsTop) {
+    return 'not_eligible_teacher_battle';
+  }
+  return 'ok';
+}
+
 export function declinePointsEvents() {
   return [
     { who: 'challenger', amount: POINTS.battleExpiredBonus, reason: 'battle_expired_bonus' },
