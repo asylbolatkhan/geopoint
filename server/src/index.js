@@ -1,11 +1,15 @@
 import 'dotenv/config';
 import express from 'express';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { auth } from './authMiddleware.js';
 import { authRouter } from './routes/auth.js';
 import { soloRouter } from './routes/solo.js';
 import { battlesRouter, expireDueBattles } from './routes/battles.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
 import { adminRouter } from './routes/admin.js';
+import { profileRouter } from './routes/profile.js';
 import { startBot } from './bot.js';
 
 const app = express();
@@ -19,6 +23,14 @@ app.use('/api/solo', soloRouter);
 app.use('/api/battles', battlesRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/profile', profileRouter);
+
+// Mini App статикасы (production-да tma/dist бар болса)
+const tmaDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../tma/dist');
+if (fs.existsSync(tmaDist)) {
+  app.use(express.static(tmaDist));
+  app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(tmaDist, 'index.html')));
+}
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
