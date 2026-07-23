@@ -4,12 +4,14 @@ import { requireApproved } from '../authMiddleware.js';
 import { parseGameConfig, generateQuestions, renderForPlayer, scoreAnswers } from '../quiz.js';
 import {
   resolveBattle, completedPointsEvents, unansweredPointsEvents, declinePointsEvents,
+  challengeEligibility,
 } from '../battleLogic.js';
 import { awardPoints } from '../points.js';
 import { notify } from '../bot.js';
 import { M } from '../messages.js';
 import { BATTLE, TIMEZONE } from '../config.js';
 import { isDbId } from '../ids.js';
+import { isTopStudent } from '../eligibility.js';
 
 export const battlesRouter = Router();
 battlesRouter.use(requireApproved);
@@ -78,7 +80,7 @@ function summarize(b, myId) {
   return {
     id: b.id,
     role: isChallenger ? 'challenger' : 'opponent',
-    other: { name: b.other_name, class_name: b.other_class },
+    other: { name: b.other_name, class_name: b.other_class, role: b.other_role },
     status: b.status,
     mySubmitted: !!my,
     myCorrect: my ? my.correct : null,
@@ -95,7 +97,7 @@ function summarize(b, myId) {
 
 const listSql = `
   SELECT b.*, jsonb_array_length(b.questions) AS total,
-         o.name AS other_name, oc.name AS other_class
+         o.name AS other_name, oc.name AS other_class, o.role AS other_role
   FROM battles b
   JOIN students o ON o.id = CASE WHEN b.challenger_id = $1 THEN b.opponent_id ELSE b.challenger_id END
   LEFT JOIN classes oc ON oc.id = o.class_id
@@ -109,9 +111,21 @@ battlesRouter.post('/', async (req, res, next) => {
     const opponentIdNum = Number(opponentId);
     if (!isDbId(opponentIdNum)) return res.status(400).json({ error: 'bad_opponent' });
     const opponent = await studentById(opponentIdNum);
-    if (!opponent || opponent.status !== 'approved' || opponent.role !== 'student' ||
-        opponent.id === req.student.id) {
+    if (!opponent || opponent.status !== 'approved' || opponent.id === req.student.id) {
       return res.status(400).json({ error: 'bad_opponent' });
+    }
+    const challengerIsTop =
+      req.student.role === 'student' && opponent.role === 'teacher'
+        ? await isTopStudent(req.student.id)
+        : true;
+    const verdict = challengeEligibility({
+      challengerRole: req.student.role,
+      opponentRole: opponent.role,
+      challengerIsTop,
+    });
+    if (verdict === 'bad_opponent') return res.status(400).json({ error: 'bad_opponent' });
+    if (verdict === 'not_eligible_teacher_battle') {
+      return res.status(403).json({ error: 'not_eligible_teacher_battle' });
     }
     const { rows: cntRows } = await query(
       `SELECT COUNT(*)::int AS n FROM battles

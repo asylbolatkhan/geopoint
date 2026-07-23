@@ -4,6 +4,7 @@ import { requireApproved } from '../authMiddleware.js';
 import { notifyAdmins } from '../bot.js';
 import { M } from '../messages.js';
 import { isDbId } from '../ids.js';
+import { isTopStudent } from '../eligibility.js';
 
 export const authRouter = Router();
 
@@ -21,11 +22,30 @@ authRouter.get('/classes', async (req, res, next) => {
 authRouter.post('/register', async (req, res, next) => {
   try {
     if (req.student) return res.status(409).json({ error: 'already_registered' });
-    const { name, classId, lang } = req.body || {};
+    const { name, classId, lang, role } = req.body || {};
     if (typeof name !== 'string' || !name.trim() || name.trim().length > 60) {
       return res.status(400).json({ error: 'bad_name' });
     }
     if (!['kk', 'ru'].includes(lang)) return res.status(400).json({ error: 'bad_lang' });
+    const roleValue = role === undefined ? 'student' : role;
+    if (!['student', 'teacher'].includes(roleValue)) {
+      return res.status(400).json({ error: 'bad_role' });
+    }
+    if (roleValue === 'teacher') {
+      let rows;
+      try {
+        ({ rows } = await query(
+          `INSERT INTO students (tg_user_id, name, class_id, lang, role)
+           VALUES ($1, $2, NULL, $3, 'teacher') RETURNING *`,
+          [req.tgUser.id, name.trim(), lang]
+        ));
+      } catch (e) {
+        if (e.code === '23505') return res.status(409).json({ error: 'already_registered' });
+        throw e;
+      }
+      notifyAdmins((adminLang) => M[adminLang].newPendingTeacher(name.trim()));
+      return res.json({ student: rows[0] });
+    }
     const classIdNum = Number(classId);
     if (!isDbId(classIdNum)) return res.status(400).json({ error: 'bad_class' });
     const cls = await query('SELECT id, name FROM classes WHERE id = $1', [classIdNum]);
@@ -50,16 +70,18 @@ authRouter.get('/students', requireApproved, async (req, res, next) => {
     const classId = Number.isInteger(Number(req.query.classId)) && req.query.classId !== '' && req.query.classId !== undefined ? Number(req.query.classId) : null;
     const q = req.query.q ? String(req.query.q) : null;
     const { rows } = await query(
-      `SELECT s.id, s.name, c.name AS class_name
+      `SELECT s.id, s.name, s.role, c.name AS class_name
        FROM students s
-       JOIN classes c ON c.id = s.class_id
-       WHERE s.status = 'approved' AND s.role = 'student' AND s.id <> $1
-         AND ($2::int IS NULL OR s.class_id = $2)
+       LEFT JOIN classes c ON c.id = s.class_id
+       WHERE s.status = 'approved' AND s.role IN ('student','teacher') AND s.id <> $1
+         AND (s.role = 'teacher' OR $2::int IS NULL OR s.class_id = $2)
          AND ($3::text IS NULL OR s.name ILIKE '%' || $3 || '%')
-       ORDER BY c.name, s.name
+       ORDER BY s.role, c.name NULLS LAST, s.name
        LIMIT 200`,
       [req.student.id, classId, q]
     );
-    res.json({ students: rows });
+    const eligibleForTeacherBattle =
+      req.student.role !== 'student' ? true : await isTopStudent(req.student.id);
+    res.json({ students: rows, eligibleForTeacherBattle });
   } catch (e) { next(e); }
 });

@@ -19,7 +19,7 @@ async function studentById(id) {
 adminRouter.get('/pending', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.tg_user_id, s.created_at
+      `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.role, s.tg_user_id, s.created_at
        FROM students s LEFT JOIN classes c ON c.id = s.class_id
        WHERE s.status = 'pending' ORDER BY s.created_at`
     );
@@ -63,12 +63,12 @@ adminRouter.post('/students/:id/reject', async (req, res, next) => {
 adminRouter.get('/students', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.lang, s.created_at,
+      `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.role, s.lang, s.created_at,
               COALESCE(SUM(p.amount) FILTER (WHERE p.month_key = $1), 0)::int AS month_points
        FROM students s
        LEFT JOIN classes c ON c.id = s.class_id
        LEFT JOIN points_events p ON p.student_id = s.id
-       WHERE s.status = 'approved' AND s.role = 'student'
+       WHERE s.status = 'approved' AND s.role IN ('student','teacher')
        GROUP BY s.id, c.name ORDER BY c.name, s.name`,
       [monthKey()]
     );
@@ -98,7 +98,7 @@ adminRouter.delete('/students/:id', async (req, res, next) => {
     const id = Number(req.params.id);
     if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const { rowCount } = await query(
-      `DELETE FROM students WHERE id = $1 AND role = 'student'`, [id]
+      `DELETE FROM students WHERE id = $1 AND role <> 'admin'`, [id]
     );
     if (!rowCount) return res.status(404).json({ error: 'not_found' });
     res.json({ ok: true });

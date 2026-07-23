@@ -17,11 +17,28 @@ leaderboardRouter.get('/months', async (req, res, next) => {
 
 leaderboardRouter.get('/', async (req, res, next) => {
   try {
-    const scope = ['class', 'school', 'classes'].includes(req.query.scope)
+    const scope = ['class', 'school', 'classes', 'teachers'].includes(req.query.scope)
       ? req.query.scope : 'class';
     const month = req.query.month === 'all' ? null : (req.query.month || monthKey());
     if (month !== null && !/^\d{4}-\d{2}$/.test(month)) {
       return res.status(400).json({ error: 'bad_month' });
+    }
+    if (scope === 'teachers' && req.student.role === 'student') {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    if (scope === 'teachers') {
+      const { rows } = await query(
+        `SELECT s.id, s.name, NULL AS class_name, COALESCE(SUM(p.amount), 0)::int AS points
+         FROM students s
+         LEFT JOIN points_events p ON p.student_id = s.id AND ($1::text IS NULL OR p.month_key = $1)
+         WHERE s.status = 'approved' AND s.role = 'teacher'
+         GROUP BY s.id
+         ORDER BY points DESC, s.name
+         LIMIT 100`,
+        [month]
+      );
+      return res.json({ rows: rows.map((r, i) => ({ ...r, rank: i + 1 })) });
     }
 
     if (scope === 'classes') {
