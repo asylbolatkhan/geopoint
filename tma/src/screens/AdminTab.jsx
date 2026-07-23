@@ -306,7 +306,7 @@ function StudentsSection({ t, lang, classes, list, loading, error, onRetry, onMu
 
   if (loading) return <Spinner />;
   if (error) return <ErrorRetry t={t} onRetry={onRetry} />;
-  if (list.length === 0) return <p className="text-slate-400 text-center py-8">—</p>;
+  if (list.length === 0) return <p className="text-slate-400 text-center py-8">{t.emptyBoard}</p>;
 
   return (
     <div className="flex flex-col gap-2">
@@ -579,6 +579,24 @@ export default function AdminTab({ lang }) {
     setSection(s);
   };
 
+  // Mutation handlers that invalidate dependent caches
+  const handlePendingMutated = () => {
+    fetchPending();
+    setStudents(null);
+    setStats(null);
+  };
+
+  const handleStudentsMutated = () => {
+    fetchStudents();
+    setStats(null);
+  };
+
+  const handleClassesMutated = () => {
+    fetchClasses();
+    setStudents(null);
+    setStats(null);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-4 gap-1 bg-slate-800 rounded-xl p-1">
@@ -610,7 +628,7 @@ export default function AdminTab({ lang }) {
           loading={pendingLoading || classesLoading}
           error={pendingError || classesError}
           onRetry={() => { fetchPending(); fetchClasses(); }}
-          onMutated={fetchPending}
+          onMutated={handlePendingMutated}
         />
       )}
       {section === 'students' && (
@@ -622,7 +640,7 @@ export default function AdminTab({ lang }) {
           loading={studentsLoading || classesLoading}
           error={studentsError || classesError}
           onRetry={() => { fetchStudents(); fetchClasses(); }}
-          onMutated={fetchStudents}
+          onMutated={handleStudentsMutated}
         />
       )}
       {section === 'classes' && (
@@ -632,7 +650,7 @@ export default function AdminTab({ lang }) {
           loading={classesLoading}
           error={classesError}
           onRetry={fetchClasses}
-          onMutated={fetchClasses}
+          onMutated={handleClassesMutated}
         />
       )}
       {section === 'stats' && (
