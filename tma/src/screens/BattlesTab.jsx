@@ -459,6 +459,11 @@ export default function BattlesTab({ lang, me }) {
           {t.battleClosedError}
         </Card>
       )}
+      {genericError && (
+        <Card className="border-red-500/50 text-red-400 text-sm text-center" onClick={() => setGenericError(false)}>
+          {t.errorGeneric}
+        </Card>
+      )}
 
       <div className="flex flex-col gap-2">
         <button type="button" onClick={startPick} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
