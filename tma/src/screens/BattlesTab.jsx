@@ -133,7 +133,7 @@ export default function BattlesTab({ lang, me }) {
   const [opponent, setOpponent] = useState(null);
 
   // settings
-  const [continent, setContinent] = useState('all');
+  const [continents, setContinents] = useState(['all']);
   const [questionTypes, setQuestionTypes] = useState([...TYPE_KEYS]);
   const [count, setCount] = useState(10);
   const [starting, setStarting] = useState(false);
@@ -187,6 +187,15 @@ export default function BattlesTab({ lang, me }) {
     return () => { ignore = true; };
   }, [phase, scope, debouncedSearch]);
 
+  const toggleContinent = (k) => {
+    setContinents((prev) => {
+      if (k === 'all') return ['all'];
+      if (prev.includes('all')) return [k];
+      const next = prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k];
+      return next.length === 0 ? ['all'] : next;
+    });
+  };
+
   const toggleType = (key) => {
     setQuestionTypes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
@@ -204,7 +213,7 @@ export default function BattlesTab({ lang, me }) {
   const selectOpponent = (s) => {
     haptic('light');
     setOpponent(s);
-    setContinent('all');
+    setContinents(['all']);
     setQuestionTypes([...TYPE_KEYS]);
     setCount(10);
     setLimitError(false);
@@ -220,7 +229,7 @@ export default function BattlesTab({ lang, me }) {
     try {
       const body = {
         opponentId: opponent.id,
-        config: { continents: continent === 'all' ? 'all' : [continent], questionTypes, count },
+        config: { continents: continents.includes('all') ? 'all' : continents, questionTypes, count },
       };
       const r = await api('/battles', { method: 'POST', body });
       setGame({ battleId: r.battle.id, total: r.total, questionSeconds: r.questionSeconds, questions: r.questions });
@@ -406,7 +415,7 @@ export default function BattlesTab({ lang, me }) {
           <label className="text-sm text-slate-400">{t.continent}</label>
           <div className="flex flex-wrap gap-2">
             {CONTINENT_KEYS.map((key) => (
-              <Chip key={key} selected={continent === key} onClick={() => setContinent(key)}>
+              <Chip key={key} selected={continents.includes(key)} onClick={() => toggleContinent(key)}>
                 {t.continents[key]}
               </Chip>
             ))}

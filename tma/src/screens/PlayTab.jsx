@@ -38,7 +38,7 @@ export default function PlayTab({ lang }) {
   const t = useT(lang);
 
   const [phase, setPhase] = useState('setup'); // setup | playing | submitting | result
-  const [continent, setContinent] = useState('all');
+  const [continents, setContinents] = useState(['all']);
   const [questionTypes, setQuestionTypes] = useState([...TYPE_KEYS]);
   const [count, setCount] = useState(10);
   const [timerSec, setTimerSec] = useState(null);
@@ -54,6 +54,15 @@ export default function PlayTab({ lang }) {
   const [showReview, setShowReview] = useState(false);
   const submittingRef = useRef(false);
 
+  const toggleContinent = (k) => {
+    setContinents((prev) => {
+      if (k === 'all') return ['all'];
+      if (prev.includes('all')) return [k];
+      const next = prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k];
+      return next.length === 0 ? ['all'] : next;
+    });
+  };
+
   const toggleType = (key) => {
     setQuestionTypes((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
@@ -66,7 +75,7 @@ export default function PlayTab({ lang }) {
     setStartError(false);
     try {
       const body = {
-        continents: continent === 'all' ? 'all' : [continent],
+        continents: continents.includes('all') ? 'all' : continents,
         questionTypes,
         count,
       };
@@ -221,7 +230,7 @@ export default function PlayTab({ lang }) {
         <label className="text-sm text-slate-400">{t.continent}</label>
         <div className="flex flex-wrap gap-2">
           {CONTINENT_KEYS.map((key) => (
-            <Chip key={key} selected={continent === key} onClick={() => setContinent(key)}>
+            <Chip key={key} selected={continents.includes(key)} onClick={() => toggleContinent(key)}>
               {t.continents[key]}
             </Chip>
           ))}
