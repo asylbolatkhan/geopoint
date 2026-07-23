@@ -132,6 +132,7 @@ export default function PlayTab({ lang }) {
         questionSeconds={timerSec}
         lang={lang}
         onFinish={handleFinish}
+        checkAnswer={(index, answer) => api(`/solo/${game.gameId}/answer`, { method: 'POST', body: { index, answer } })}
       />
     );
   }
