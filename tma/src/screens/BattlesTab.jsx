@@ -53,6 +53,10 @@ function hoursLeft(b) {
   return Math.max(0, Math.ceil((new Date(b.expiresAt) - Date.now()) / 3600000));
 }
 
+function score(v) {
+  return v == null ? '—' : v;
+}
+
 function BattleRow({ b, t, onOpen, showDecline, declineOpen, onDeclineToggle, onDeclineConfirm, declining }) {
   const badge = b.status !== 'awaiting_opponent' ? resultBadge(b, t) : null;
   return (
@@ -68,7 +72,7 @@ function BattleRow({ b, t, onOpen, showDecline, declineOpen, onDeclineToggle, on
         ) : (
           <div className="flex items-center gap-2 text-sm">
             <span className={`font-semibold ${badge.cls}`}>{badge.label}</span>
-            {b.status === 'completed' && <span className="text-slate-400">{b.myCorrect}:{b.theirCorrect}</span>}
+            {b.status === 'completed' && <span className="text-slate-400">{score(b.myCorrect)}:{score(b.theirCorrect)}</span>}
           </div>
         )}
       </div>
@@ -164,15 +168,23 @@ export default function BattlesTab({ lang, me }) {
 
   useEffect(() => {
     if (phase !== 'pickOpponent') return;
+    let ignore = false;
     setStudentsLoading(true);
     const params = new URLSearchParams();
     if (scope === 'myClass' && me.class_id != null) params.set('classId', me.class_id);
     if (debouncedSearch) params.set('q', debouncedSearch);
     const qs = params.toString();
     api(`/students${qs ? `?${qs}` : ''}`)
-      .then((r) => setStudents(r.students))
-      .catch(() => setStudents([]))
-      .finally(() => setStudentsLoading(false));
+      .then((r) => {
+        if (!ignore) setStudents(r.students);
+      })
+      .catch(() => {
+        if (!ignore) setStudents([]);
+      })
+      .finally(() => {
+        if (!ignore) setStudentsLoading(false);
+      });
+    return () => { ignore = true; };
   }, [phase, scope, debouncedSearch]);
 
   const toggleType = (key) => {
@@ -255,6 +267,9 @@ export default function BattlesTab({ lang, me }) {
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         setClosedNotice(true);
+        setGame(null);
+        setFinished(null);
+        setPending(null);
         setPhase('list');
       } else {
         setSubmitError(true);
@@ -275,7 +290,9 @@ export default function BattlesTab({ lang, me }) {
     setDeclining(true);
     try {
       await api(`/battles/${id}/decline`, { method: 'POST' });
-    } catch { /* battle_closed — тізім өзі жаңарады */ }
+    } catch {
+      setGenericError(true);
+    }
     setDeclining(false);
     setDeclineId(null);
     fetchList();
@@ -318,7 +335,7 @@ export default function BattlesTab({ lang, me }) {
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col items-center gap-2 text-center">
             <div className="text-lg font-semibold text-slate-300">{t.waitingOpponent}</div>
-            <div className="text-4xl font-bold">{finished.myCorrect}/{finished.total}</div>
+            <div className="text-4xl font-bold">{score(finished.myCorrect)}/{finished.total}</div>
           </Card>
           <button type="button" onClick={backToList} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
             {t.done}
@@ -332,7 +349,7 @@ export default function BattlesTab({ lang, me }) {
         <Card className="flex flex-col items-center gap-2 text-center">
           <div className={`text-2xl font-bold ${badge.cls}`}>{badge.label}</div>
           <div className="text-4xl font-bold text-slate-100">
-            {finished.theirCorrect != null ? `${finished.myCorrect}:${finished.theirCorrect}` : `${finished.myCorrect}/${finished.total}`}
+            {finished.theirCorrect != null ? `${score(finished.myCorrect)}:${score(finished.theirCorrect)}` : `${score(finished.myCorrect)}/${finished.total}`}
           </div>
         </Card>
         <button type="button" onClick={backToList} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
