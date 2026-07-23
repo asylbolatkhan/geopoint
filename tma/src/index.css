@@ -20,3 +20,7 @@ input {
 }
 
 html, body, #root { min-height: 100%; }
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
