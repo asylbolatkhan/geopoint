@@ -3,7 +3,6 @@ import { api } from './api';
 import { getAuthHeader, tgUserLang } from './telegram';
 import { useT } from './i18n';
 import Loader from './components/Loader';
-import Card from './components/Card';
 import TabBar from './components/TabBar';
 import RegisterScreen from './screens/RegisterScreen';
 import PendingScreen from './screens/PendingScreen';
@@ -11,6 +10,7 @@ import PlayTab from './screens/PlayTab';
 import BattlesTab from './screens/BattlesTab';
 import RatingTab from './screens/RatingTab';
 import ProfileTab from './screens/ProfileTab';
+import AdminTab from './screens/AdminTab';
 
 const notInTelegram = getAuthHeader() === '';
 
@@ -77,7 +77,7 @@ export default function App() {
         {active === 'battles' && <BattlesTab lang={lang} me={me} />}
         {active === 'rating' && <RatingTab lang={lang} me={me} />}
         {active === 'profile' && <ProfileTab lang={lang} me={me} />}
-        {active === 'admin' && <Card>{t.tabAdmin}…</Card>}
+        {active === 'admin' && <AdminTab lang={lang} />}
       </div>
       <TabBar tabs={tabs} active={active} onChange={setActiveTab} />
     </div>
