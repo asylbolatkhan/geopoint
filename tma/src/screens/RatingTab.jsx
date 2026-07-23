@@ -4,7 +4,9 @@ import { haptic } from '../telegram';
 import { useT } from '../i18n';
 import Card from '../components/Card';
 
-const SCOPES = ['class', 'school', 'classes'];
+const SCOPES_STUDENT = ['class', 'school', 'classes'];
+const SCOPES_TEACHER = ['school', 'classes', 'teachers'];
+const SCOPES_ADMIN = ['school', 'classes', 'teachers'];
 
 function Chip({ selected, onClick, children }) {
   return (
@@ -31,10 +33,23 @@ function medal(rank) {
   return rank;
 }
 
+function scopesFor(role) {
+  if (role === 'teacher') return SCOPES_TEACHER;
+  if (role === 'admin') return SCOPES_ADMIN;
+  return SCOPES_STUDENT;
+}
+
+function defaultScopeFor(role) {
+  if (role === 'teacher') return 'teachers';
+  if (role === 'admin') return 'school';
+  return 'class';
+}
+
 export default function RatingTab({ lang, me }) {
   const t = useT(lang);
 
-  const [scope, setScope] = useState('class');
+  const SCOPES = scopesFor(me?.role);
+  const [scope, setScope] = useState(defaultScopeFor(me?.role));
   const [period, setPeriod] = useState('thisMonth'); // thisMonth | allTime | YYYY-MM
   const [months, setMonths] = useState([]);
 
@@ -124,7 +139,7 @@ export default function RatingTab({ lang, me }) {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{r.name}</div>
                     <div className="text-slate-400 text-sm truncate">
-                      {isClasses ? `${r.students} ${t.students}` : r.class_name}
+                      {isClasses ? `${r.students} ${t.students}` : (r.class_name ?? t.teacherBadge)}
                     </div>
                   </div>
                 </div>

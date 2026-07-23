@@ -62,7 +62,7 @@ function BattleRow({ b, t, onOpen, showDecline, declineOpen, onDeclineToggle, on
   return (
     <Card className="flex flex-col gap-2">
       <div onClick={() => onOpen(b.id)} className="flex flex-col gap-1 cursor-pointer active:opacity-70">
-        <div className="font-medium">⚔️ {b.other.name} · {b.other.class_name}</div>
+        <div className="font-medium">⚔️ {b.other.name} · {b.other.class_name ?? (b.other.role === 'teacher' ? t.teacherBadge : '')}</div>
         {b.status === 'awaiting_opponent' ? (
           !b.mySubmitted ? (
             <span className="text-sky-400 font-semibold text-sm">{t.yourTurn}</span>
@@ -131,6 +131,8 @@ export default function BattlesTab({ lang, me }) {
   const [students, setStudents] = useState([]);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [opponent, setOpponent] = useState(null);
+  const [eligibleForTeacherBattle, setEligibleForTeacherBattle] = useState(true);
+  const [teacherLockHint, setTeacherLockHint] = useState(false);
 
   // settings
   const [continents, setContinents] = useState(['all']);
@@ -139,6 +141,7 @@ export default function BattlesTab({ lang, me }) {
   const [starting, setStarting] = useState(false);
   const [limitError, setLimitError] = useState(false);
   const [genericError, setGenericError] = useState(false);
+  const [notEligibleError, setNotEligibleError] = useState(false);
 
   // playing / finished
   const [game, setGame] = useState(null); // {battleId, total, questionSeconds, questions}
@@ -176,7 +179,10 @@ export default function BattlesTab({ lang, me }) {
     const qs = params.toString();
     api(`/students${qs ? `?${qs}` : ''}`)
       .then((r) => {
-        if (!ignore) setStudents(r.students);
+        if (!ignore) {
+          setStudents(r.students);
+          setEligibleForTeacherBattle(r.eligibleForTeacherBattle ?? true);
+        }
       })
       .catch(() => {
         if (!ignore) setStudents([]);
@@ -207,6 +213,7 @@ export default function BattlesTab({ lang, me }) {
     setSearch('');
     setDebouncedSearch('');
     setStudents([]);
+    setTeacherLockHint(false);
     setPhase('pickOpponent');
   };
 
@@ -218,6 +225,7 @@ export default function BattlesTab({ lang, me }) {
     setCount(10);
     setLimitError(false);
     setGenericError(false);
+    setNotEligibleError(false);
     setPhase('settings');
   };
 
@@ -226,6 +234,7 @@ export default function BattlesTab({ lang, me }) {
     setStarting(true);
     setLimitError(false);
     setGenericError(false);
+    setNotEligibleError(false);
     try {
       const body = {
         opponentId: opponent.id,
@@ -237,7 +246,8 @@ export default function BattlesTab({ lang, me }) {
       setSubmitError(false);
       setPhase('playing');
     } catch (e) {
-      if (e instanceof ApiError && e.status === 429) setLimitError(true);
+      if (e instanceof ApiError && e.status === 403 && e.code === 'not_eligible_teacher_battle') setNotEligibleError(true);
+      else if (e instanceof ApiError && e.status === 429) setLimitError(true);
       else setGenericError(true);
     } finally {
       setStarting(false);
@@ -385,18 +395,50 @@ export default function BattlesTab({ lang, me }) {
           placeholder={t.searchName}
           className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-slate-100 placeholder-slate-500"
         />
-        <div className="flex flex-col gap-2">
-          {studentsLoading ? <Spinner /> : students.map((s) => (
-            <Card
-              key={s.id}
-              onClick={() => selectOpponent(s)}
-              className="cursor-pointer active:opacity-70 flex items-center justify-between"
-            >
-              <span className="font-medium">{s.name}</span>
-              <span className="text-slate-400 text-sm">{s.class_name}</span>
-            </Card>
-          ))}
-        </div>
+        {studentsLoading ? <Spinner /> : (() => {
+          const studentRows = students.filter((s) => s.role !== 'teacher');
+          const teacherRows = students.filter((s) => s.role === 'teacher');
+          return (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                {studentRows.map((s) => (
+                  <Card
+                    key={s.id}
+                    onClick={() => selectOpponent(s)}
+                    className="cursor-pointer active:opacity-70 flex items-center justify-between"
+                  >
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-slate-400 text-sm">{s.class_name}</span>
+                  </Card>
+                ))}
+              </div>
+
+              {teacherRows.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-sm text-slate-400 font-semibold">{t.teachersGroup}</h3>
+                  {!eligibleForTeacherBattle && teacherLockHint && (
+                    <p className="text-red-400 text-xs">{t.notEligibleTeacher}</p>
+                  )}
+                  {teacherRows.map((s) => (
+                    <Card
+                      key={s.id}
+                      onClick={() => {
+                        if (eligibleForTeacherBattle) selectOpponent(s);
+                        else { haptic('light'); setTeacherLockHint(true); }
+                      }}
+                      className={`cursor-pointer active:opacity-70 flex items-center justify-between ${
+                        eligibleForTeacherBattle ? '' : 'opacity-50'
+                      }`}
+                    >
+                      <span className="font-medium">{eligibleForTeacherBattle ? '' : '🔒 '}{s.name}</span>
+                      <span className="text-slate-400 text-sm">{t.teacherBadge}</span>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     );
   }
@@ -408,7 +450,7 @@ export default function BattlesTab({ lang, me }) {
         <h2 className="text-lg font-bold">{t.battleSettings}</h2>
         <Card className="flex items-center gap-2">
           <span className="font-medium">⚔️ {opponent.name}</span>
-          <span className="text-slate-400 text-sm">· {opponent.class_name}</span>
+          <span className="text-slate-400 text-sm">· {opponent.class_name ?? (opponent.role === 'teacher' ? t.teacherBadge : '')}</span>
         </Card>
 
         <div className="flex flex-col gap-2">
@@ -445,6 +487,7 @@ export default function BattlesTab({ lang, me }) {
         <p className="text-sm text-slate-400">{t.timer}: 15 {t.sec}</p>
 
         {limitError && <p className="text-red-400 text-sm text-center">{t.dailyLimitError}</p>}
+        {notEligibleError && <p className="text-red-400 text-sm text-center">{t.notEligibleTeacher}</p>}
         {genericError && <p className="text-red-500 text-sm text-center">{t.errorGeneric}</p>}
 
         <button

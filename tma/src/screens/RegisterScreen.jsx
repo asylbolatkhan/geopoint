@@ -8,6 +8,7 @@ export default function RegisterScreen({ onRegistered }) {
   const t = useT(lang);
 
   const [name, setName] = useState('');
+  const [role, setRole] = useState('student');
   const [classId, setClassId] = useState(null);
   const [classes, setClasses] = useState(null);
   const [classesError, setClassesError] = useState(false);
@@ -24,14 +25,18 @@ export default function RegisterScreen({ onRegistered }) {
   };
   useEffect(loadClasses, []);
 
-  const canSubmit = name.trim().length > 0 && classId !== null && !submitting;
+  const isTeacher = role === 'teacher';
+  const canSubmit = name.trim().length > 0 && (isTeacher || classId !== null) && !submitting;
 
   const submit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     setError(false);
     try {
-      const r = await api('/register', { method: 'POST', body: { name: name.trim(), classId, lang } });
+      const body = isTeacher
+        ? { name: name.trim(), lang, role: 'teacher' }
+        : { name: name.trim(), classId, lang };
+      const r = await api('/register', { method: 'POST', body });
       haptic('medium');
       onRegistered(r.student);
       return;
@@ -72,6 +77,35 @@ export default function RegisterScreen({ onRegistered }) {
         </div>
 
         <div className="flex flex-col gap-2">
+          <label className="text-sm text-slate-400">{t.roleLabel}</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { haptic('light'); setRole('student'); }}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                role === 'student'
+                  ? 'bg-sky-500 border-sky-500 text-white'
+                  : 'bg-slate-800 border-slate-700 text-slate-300'
+              }`}
+            >
+              {t.roleStudent}
+            </button>
+            <button
+              type="button"
+              onClick={() => { haptic('light'); setRole('teacher'); }}
+              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
+                role === 'teacher'
+                  ? 'bg-sky-500 border-sky-500 text-white'
+                  : 'bg-slate-800 border-slate-700 text-slate-300'
+              }`}
+            >
+              {t.roleTeacher}
+            </button>
+          </div>
+        </div>
+
+        {!isTeacher && (
+        <div className="flex flex-col gap-2">
           <label className="text-sm text-slate-400">{t.yourClass}</label>
           {classesError ? (
             <button
@@ -107,6 +141,7 @@ export default function RegisterScreen({ onRegistered }) {
             </div>
           )}
         </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <label className="text-sm text-slate-400">{t.language}</label>

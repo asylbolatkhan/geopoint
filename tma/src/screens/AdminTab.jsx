@@ -82,11 +82,17 @@ function PendingSection({ t, lang, classes, list, loading, error, onRetry, onMut
               <div className="font-medium truncate">{s.name}</div>
               <div className="text-slate-500 text-xs">{fmtDate(s.created_at, lang)}</div>
             </div>
-            <ClassSelect
-              classes={classes}
-              value={picks[s.id] ?? s.class_id}
-              onChange={(v) => setPicks((p) => ({ ...p, [s.id]: v }))}
-            />
+            {s.role === 'teacher' ? (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-300">
+                {t.teacherBadge}
+              </span>
+            ) : (
+              <ClassSelect
+                classes={classes}
+                value={picks[s.id] ?? s.class_id}
+                onChange={(v) => setPicks((p) => ({ ...p, [s.id]: v }))}
+              />
+            )}
           </div>
           {errId === s.id && <p className="text-red-400 text-xs">{t.errorGeneric}</p>}
           <div className="flex gap-2">
@@ -231,7 +237,7 @@ function StudentRow({ t, lang, s, classes, expanded, onToggle, onMutated }) {
       <div onClick={onToggle} className="flex items-center justify-between gap-2 cursor-pointer active:opacity-70">
         <div className="min-w-0">
           <div className="font-medium truncate">{s.name}</div>
-          <div className="text-slate-400 text-sm truncate">{s.class_name}</div>
+          <div className="text-slate-400 text-sm truncate">{s.class_name ?? (s.role === 'teacher' ? t.teacherBadge : '')}</div>
         </div>
         <div className="text-right shrink-0">
           <div className="font-bold text-sky-400">{s.month_points}</div>
@@ -241,21 +247,23 @@ function StudentRow({ t, lang, s, classes, expanded, onToggle, onMutated }) {
 
       {expanded && (
         <div className="flex flex-col gap-3 pt-2 border-t border-slate-700">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-400">{t.changeClass}</label>
-            <div className="flex gap-2">
-              <ClassSelect classes={classes} value={classId} onChange={setClassId} />
-              <button
-                type="button"
-                onClick={save}
-                disabled={saving || classId === s.class_id}
-                className="rounded-lg px-4 text-sm font-semibold bg-sky-500 text-white disabled:opacity-50"
-              >
-                {t.save}
-              </button>
+          {s.role !== 'teacher' && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-400">{t.changeClass}</label>
+              <div className="flex gap-2">
+                <ClassSelect classes={classes} value={classId} onChange={setClassId} />
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={saving || classId === s.class_id}
+                  className="rounded-lg px-4 text-sm font-semibold bg-sky-500 text-white disabled:opacity-50"
+                >
+                  {t.save}
+                </button>
+              </div>
+              {saveErr && <p className="text-red-400 text-xs">{t.errorGeneric}</p>}
             </div>
-            {saveErr && <p className="text-red-400 text-xs">{t.errorGeneric}</p>}
-          </div>
+          )}
 
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-400">{t.pointsJournal}</label>
