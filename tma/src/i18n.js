@@ -134,7 +134,7 @@ export const T = {
     vs: 'против', youLabel: 'Ты',
     dailyLimitError: 'Этому сопернику сегодня уже брошено 3 баттла. Попробуй завтра.',
     battleClosedError: 'Этот баттл уже закрыт.',
-    hoursLeft: 'часов осталось',
+    hoursLeft: 'ч. осталось',
     // Рейтинг
     scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы',
     thisMonth: 'Этот месяц', allTime: 'Всё время',

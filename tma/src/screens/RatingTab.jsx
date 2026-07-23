@@ -56,19 +56,6 @@ export default function RatingTab({ lang, me }) {
       .catch(() => setMonths([]));
   }, []);
 
-  const fetchRows = () => {
-    setLoading(true);
-    setError(false);
-    const params = new URLSearchParams();
-    params.set('scope', scope);
-    if (period === 'allTime') params.set('month', 'all');
-    else if (period !== 'thisMonth') params.set('month', period);
-    api(`/leaderboard?${params.toString()}`)
-      .then((r) => setRows(r.rows || []))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  };
-
   useEffect(() => {
     let ignore = false;
     setLoading(true);

@@ -11,7 +11,8 @@ export default function PendingScreen({ lang, onApproved }) {
   const check = () => {
     api('/me')
       .then((r) => {
-        if (r.student && r.student.status !== 'pending') onApproved(r.student);
+        if (r.student === null) onApproved(null);
+        else if (r.student && r.student.status !== 'pending') onApproved(r.student);
       })
       .catch(() => {
         /* келесі әрекетте қайталанады */

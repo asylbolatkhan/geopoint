@@ -348,9 +348,11 @@ export default function BattlesTab({ lang, me }) {
       <div className="flex flex-col gap-4">
         <Card className="flex flex-col items-center gap-2 text-center">
           <div className={`text-2xl font-bold ${badge.cls}`}>{badge.label}</div>
-          <div className="text-4xl font-bold text-slate-100">
-            {finished.theirCorrect != null ? `${score(finished.myCorrect)}:${score(finished.theirCorrect)}` : `${score(finished.myCorrect)}/${finished.total}`}
-          </div>
+          {finished.myCorrect != null && (
+            <div className="text-4xl font-bold text-slate-100">
+              {finished.theirCorrect != null ? `${score(finished.myCorrect)}:${score(finished.theirCorrect)}` : `${score(finished.myCorrect)}/${finished.total}`}
+            </div>
+          )}
         </Card>
         <button type="button" onClick={backToList} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
           {t.done}
@@ -487,33 +489,40 @@ export default function BattlesTab({ lang, me }) {
         </div>
       ) : (
         <>
-          {active.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm text-slate-400 font-semibold">{t.battleActive}</h3>
-              {active.map((b) => (
-                <BattleRow
-                  key={b.id}
-                  b={b}
-                  t={t}
-                  onOpen={openBattle}
-                  showDecline={b.role === 'opponent' && !b.mySubmitted}
-                  declineOpen={declineId === b.id}
-                  onDeclineToggle={setDeclineId}
-                  onDeclineConfirm={confirmDecline}
-                  declining={declining}
-                />
-              ))}
+          {opening && (
+            <div className="flex justify-center">
+              <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
+          <div className={opening ? 'flex flex-col gap-5 opacity-50 pointer-events-none' : 'flex flex-col gap-5'}>
+            {active.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm text-slate-400 font-semibold">{t.battleActive}</h3>
+                {active.map((b) => (
+                  <BattleRow
+                    key={b.id}
+                    b={b}
+                    t={t}
+                    onOpen={openBattle}
+                    showDecline={b.role === 'opponent' && !b.mySubmitted}
+                    declineOpen={declineId === b.id}
+                    onDeclineToggle={setDeclineId}
+                    onDeclineConfirm={confirmDecline}
+                    declining={declining}
+                  />
+                ))}
+              </div>
+            )}
 
-          {history.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <h3 className="text-sm text-slate-400 font-semibold">{t.battleHistory}</h3>
-              {history.map((b) => (
-                <BattleRow key={b.id} b={b} t={t} onOpen={openBattle} showDecline={false} />
-              ))}
-            </div>
-          )}
+            {history.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm text-slate-400 font-semibold">{t.battleHistory}</h3>
+                {history.map((b) => (
+                  <BattleRow key={b.id} b={b} t={t} onOpen={openBattle} showDecline={false} />
+                ))}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
