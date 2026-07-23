@@ -41,12 +41,17 @@ export default function RatingTab({ lang, me }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     api('/leaderboard/months')
       .then((r) => {
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        setMonths((r.months || []).filter((m) => m !== currentMonth));
+        const almatyMonth = (() => {
+          const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Almaty', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+          const get = (t) => parts.find((p) => p.type === t).value;
+          return `${get('year')}-${get('month')}`;
+        })();
+        setMonths((r.months || []).filter((m) => m !== almatyMonth));
       })
       .catch(() => setMonths([]));
   }, []);
@@ -65,9 +70,27 @@ export default function RatingTab({ lang, me }) {
   };
 
   useEffect(() => {
-    fetchRows();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, period]);
+    let ignore = false;
+    setLoading(true);
+    setError(false);
+    const params = new URLSearchParams();
+    params.set('scope', scope);
+    if (period === 'allTime') params.set('month', 'all');
+    else if (period !== 'thisMonth') params.set('month', period);
+    api(`/leaderboard?${params.toString()}`)
+      .then((r) => {
+        if (!ignore) setRows(r.rows || []);
+      })
+      .catch(() => {
+        if (!ignore) setError(true);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [scope, period, reloadKey]);
 
   const isClasses = scope === 'classes';
 
@@ -94,7 +117,7 @@ export default function RatingTab({ lang, me }) {
       ) : error ? (
         <div className="flex flex-col items-center gap-3 py-8">
           <p className="text-slate-300 text-center">{t.errorGeneric}</p>
-          <button type="button" onClick={fetchRows} className="rounded-xl py-2 px-6 font-semibold bg-sky-500 text-white">
+          <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="rounded-xl py-2 px-6 font-semibold bg-sky-500 text-white">
             {t.retry}
           </button>
         </div>
