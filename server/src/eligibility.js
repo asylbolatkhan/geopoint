@@ -10,6 +10,7 @@ export async function isTopStudent(studentId) {
      JOIN points_events p ON p.student_id = s.id AND p.month_key = $1
      WHERE s.role = 'student' AND s.status = 'approved'
      GROUP BY s.id
+     HAVING SUM(p.amount) > 0
      ORDER BY SUM(p.amount) DESC, s.name
      LIMIT $2`,
     [prevMonthKey(), BATTLE.teacherChallengeTopN]

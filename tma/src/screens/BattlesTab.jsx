@@ -385,10 +385,12 @@ export default function BattlesTab({ lang, me }) {
       <div className="flex flex-col gap-4">
         <BackBtn onClick={() => setPhase('list')} />
         <h2 className="text-lg font-bold">{t.chooseOpponent}</h2>
-        <div className="flex gap-2">
-          <Chip selected={scope === 'myClass'} onClick={() => setScope('myClass')}>{t.myClass}</Chip>
-          <Chip selected={scope === 'allSchool'} onClick={() => setScope('allSchool')}>{t.allSchool}</Chip>
-        </div>
+        {me.role !== 'teacher' && (
+          <div className="flex gap-2">
+            <Chip selected={scope === 'myClass'} onClick={() => setScope('myClass')}>{t.myClass}</Chip>
+            <Chip selected={scope === 'allSchool'} onClick={() => setScope('allSchool')}>{t.allSchool}</Chip>
+          </div>
+        )}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
