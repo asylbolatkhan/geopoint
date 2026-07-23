@@ -25,3 +25,14 @@ Backend for the Telegram Mini App: Express API + PostgreSQL + grammY bot.
 ## Points rules
 
 All tunable values live in `src/config.js`.
+
+## Production (Railway)
+
+For the full teacher-friendly, step-by-step deployment guide (Kazakh) — including BotFather setup, Railway service configuration, environment variables, one-off seeding, and a verification checklist — see **[../DEPLOY.md](../DEPLOY.md)**.
+
+Quick reference:
+
+- Build command: `npm ci --prefix tma && npm run build --prefix tma && npm ci --prefix server`
+- Start command: `npm run start:prod --prefix server` (runs `scripts/migrate.js` then starts the server, which also serves the built `tma/dist` statics)
+- Required env vars: `DATABASE_URL`, `BOT_TOKEN`, `ADMIN_TG_ID`, `WEBAPP_URL`, `SCHOOL_NAME`, `SEED_CLASSES`, `NODE_ENV=production`. Do **not** set `DEV_AUTH` in production.
+- Seed once after first deploy: `npm run seed --prefix server` (via Railway shell, or locally with `DATABASE_URL` set).
