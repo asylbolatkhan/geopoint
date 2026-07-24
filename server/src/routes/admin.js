@@ -255,6 +255,23 @@ adminRouter.get('/stats', async (req, res, next) => {
        ORDER BY c.name, s.name`
     );
 
-    res.json({ students, continents, missed, inactive7d: inactive });
+    const { rows: classSummary } = await query(
+      `SELECT c.id, c.name AS class_name,
+              (SELECT COUNT(*) FROM students s
+               WHERE s.class_id = c.id AND s.status = 'approved' AND s.role = 'student')::int AS students,
+              COALESCE((SELECT SUM(p.amount) FROM points_events p
+               WHERE p.student_id IN (SELECT s.id FROM students s
+                                      WHERE s.class_id = c.id AND s.status = 'approved' AND s.role = 'student')
+                 AND p.month_key = $1), 0)::int AS month_points,
+              COALESCE((SELECT ROUND(AVG(g.correct_count::numeric / NULLIF(g.total, 0)) * 100) FROM solo_games g
+               WHERE g.student_id IN (SELECT s.id FROM students s
+                                      WHERE s.class_id = c.id AND s.status = 'approved' AND s.role = 'student')
+                 AND g.status = 'completed'), 0)::int AS accuracy
+       FROM classes c
+       ORDER BY c.name`,
+      [monthKey()]
+    );
+
+    res.json({ students, continents, missed, inactive7d: inactive, classSummary });
   } catch (e) { next(e); }
 });
