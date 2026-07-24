@@ -74,8 +74,13 @@ export const T = {
     days: 'күн', streakTitle: 'Күн сериясы', streakBest: 'Рекорд',
     achievementsTitle: 'Жетістіктер',
     badges: {
-      firstWin: 'Алғашқы жеңіс', wins10: 'Жеңімпаз', solo50: 'Еңбекқор',
-      perfect: 'Мінсіз ойын', streak3: 'Қызу серия', streak7: 'Апталық серия', points500: 'Жарты мың',
+      firstWin: { name: 'Алғашқы жеңіс', desc: 'Батлда 1 рет жеңу' },
+      wins10: { name: 'Жеңімпаз', desc: 'Батлда 10 рет жеңу' },
+      solo50: { name: 'Еңбекқор', desc: '50 жаттығу аяқтау' },
+      perfect: { name: 'Мінсіз ойын', desc: '10+ сұрақтың бәріне дұрыс жауап беру' },
+      streak3: { name: 'Қызу серия', desc: '3 күн қатарынан ойнау' },
+      streak7: { name: 'Апталық серия', desc: '7 күн қатарынан ойнау' },
+      points500: { name: 'Жарты мың', desc: 'Барлығы 500 ұпай жинау' },
     },
     // Админ
     adminPending: 'Өтінімдер', adminStudents: 'Оқушылар', adminClasses: 'Сыныптар', adminStats: 'Статистика',
@@ -169,8 +174,13 @@ export const T = {
     days: 'дней', streakTitle: 'Серия дней', streakBest: 'Рекорд',
     achievementsTitle: 'Достижения',
     badges: {
-      firstWin: 'Первая победа', wins10: 'Победитель', solo50: 'Труженик',
-      perfect: 'Идеальная игра', streak3: 'Горячая серия', streak7: 'Недельная серия', points500: 'Полтысячи',
+      firstWin: { name: 'Первая победа', desc: 'Выиграй 1 баттл' },
+      wins10: { name: 'Чемпион', desc: 'Выиграй 10 баттлов' },
+      solo50: { name: 'Трудяга', desc: 'Заверши 50 тренировок' },
+      perfect: { name: 'Идеальная игра', desc: 'Ответь верно на все вопросы (10+)' },
+      streak3: { name: 'Горячая серия', desc: 'Играй 3 дня подряд' },
+      streak7: { name: 'Недельная серия', desc: 'Играй 7 дней подряд' },
+      points500: { name: 'Полтысячи', desc: 'Набери 500 очков за всё время' },
     },
     // Админ
     adminPending: 'Заявки', adminStudents: 'Ученики', adminClasses: 'Классы', adminStats: 'Статистика',

@@ -107,7 +107,10 @@ export default function ProfileTab({ lang, me }) {
                 className={`flex flex-row items-center gap-2 ${a.unlocked ? 'border-sky-500' : 'opacity-40'}`}
               >
                 <div className="text-2xl">{a.unlocked ? badgeEmoji[a.key] : '🔒'}</div>
-                <div className="text-slate-300 text-xs">{t.badges?.[a.key] ?? a.key}</div>
+                <div className="flex flex-col">
+                  <div className="font-semibold text-sm">{t.badges[a.key]?.name ?? a.key}</div>
+                  <div className="text-slate-400 text-xs">{t.badges[a.key]?.desc ?? ''}</div>
+                </div>
               </Card>
             ))}
           </div>
