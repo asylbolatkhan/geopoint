@@ -255,44 +255,64 @@ async function handleInviteAccept(student, msg) {
   registry.matchByStudent.set(challengerId, matchId);
   registry.matchByStudent.set(student.id, matchId);
 
-  let challenger;
-  let opponent;
+  // Кез келген құрылым қатесі (fetch, generateQuestions, createMatch)
+  // matchByStudent жазбаларын тірі қалдырмауы керек — әйтпесе екі ойыншы да
+  // рестартқа дейін busy_you/busy_target-та тұрып қалады.
+  let match;
   try {
-    [challenger, opponent] = await Promise.all([
+    const [challenger, opponent] = await Promise.all([
       studentWithClass(challengerId), studentWithClass(student.id),
     ]);
     if (!challenger || !opponent) throw new Error('student row missing');
+
+    const questions = generateQuestions(invite.config); // БІР РЕТ — ортақ тізім
+    const playerMeta = {
+      [challenger.id]: {
+        lang: challenger.lang, seed: randomInt(SEED_MAX),
+        name: challenger.name, class_name: challenger.class_name || null,
+      },
+      [opponent.id]: {
+        lang: opponent.lang, seed: randomInt(SEED_MAX),
+        name: opponent.name, class_name: opponent.class_name || null,
+      },
+    };
+    const { state, effects } = createMatch({
+      matchId,
+      challengerId,
+      opponentId: student.id,
+      playerMeta,
+      questions,
+      config: invite.config,
+      matchSeed: randomInt(SEED_MAX),
+      now: Date.now(),
+    });
+    match = { state, timers: new Map(), queue: Promise.resolve() };
+    registry.matches.set(matchId, match);
+    dispatch(match, effects);
   } catch (e) {
     console.error('online match setup failed:', e);
-    registry.matchByStudent.delete(challengerId);
-    registry.matchByStudent.delete(student.id);
+    // жартылай тіркелген матч қалмауы үшін толық rollback
+    if (registry.matches.get(matchId)?.timers) {
+      clearAllTimers(registry.matches.get(matchId));
+    }
+    registry.matches.delete(matchId);
+    if (registry.matchByStudent.get(challengerId) === matchId) {
+      registry.matchByStudent.delete(challengerId);
+    }
+    if (registry.matchByStudent.get(student.id) === matchId) {
+      registry.matchByStudent.delete(student.id);
+    }
     return sendInviteError(student.id, 'not_found');
   }
 
-  const questions = generateQuestions(invite.config); // БІР РЕТ — ортақ тізім
-  const playerMeta = {
-    [challenger.id]: {
-      lang: challenger.lang, seed: randomInt(SEED_MAX),
-      name: challenger.name, class_name: challenger.class_name || null,
-    },
-    [opponent.id]: {
-      lang: opponent.lang, seed: randomInt(SEED_MAX),
-      name: opponent.name, class_name: opponent.class_name || null,
-    },
-  };
-  const { state, effects } = createMatch({
-    matchId,
-    challengerId,
-    opponentId: student.id,
-    playerMeta,
-    questions,
-    config: invite.config,
-    matchSeed: randomInt(SEED_MAX),
-    now: Date.now(),
-  });
-  const match = { state, timers: new Map(), queue: Promise.resolve() };
-  registry.matches.set(matchId, match);
-  dispatch(match, effects);
+  // Await терезесінде біреуі үзіліп кетсе — движок оны connected:true деп
+  // бастамауы үшін бірден disconnect ретінде өңдейміз (pause + grace).
+  for (const id of [challengerId, student.id]) {
+    if (!registry.isOnline(id)) {
+      const { effects } = applyDisconnect(match.state, id, Date.now());
+      dispatch(match, effects);
+    }
+  }
 }
 
 function handleInviteCancel(student, msg) {
