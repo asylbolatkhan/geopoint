@@ -13,6 +13,7 @@ import { profileRouter } from './routes/profile.js';
 import { startBot } from './bot.js';
 import { maybeAnnounceMonthly } from './announcements.js';
 import { attachWsServer } from './online/wsServer.js';
+import { onlineHooks } from './online/handler.js';
 
 const app = express();
 app.use(express.json());
@@ -43,7 +44,7 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || 3001;
 const server = app.listen(port, () => console.log(`geo-server listening on :${port}`));
 startBot();
-attachWsServer(server);
+attachWsServer(server, onlineHooks);
 
 function sweep() {
   expireDueBattles().catch((e) => console.error('expiry sweep failed:', e.message));

@@ -31,6 +31,18 @@ async function studentById(id) {
   return rows[0] || null;
 }
 
+// Күндік лимит: осы жұп (challenger → opponent) арасындағы бүгінгі (Алматы
+// күні) батлдар саны — режимге қарамастан (async + online қосылып саналады).
+export async function countBattlesTodayBetween(aId, bId) {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS n FROM battles
+     WHERE challenger_id = $1 AND opponent_id = $2
+       AND (created_at AT TIME ZONE $3)::date = (now() AT TIME ZONE $3)::date`,
+    [aId, bId, TIMEZONE]
+  );
+  return rows[0].n;
+}
+
 export async function expireDueBattles() {
   const { rows: due } = await query(
     `SELECT id FROM battles WHERE status = 'awaiting_opponent' AND expires_at < now()`
@@ -128,13 +140,7 @@ battlesRouter.post('/', async (req, res, next) => {
     if (verdict === 'not_eligible_teacher_battle') {
       return res.status(403).json({ error: 'not_eligible_teacher_battle' });
     }
-    const { rows: cntRows } = await query(
-      `SELECT COUNT(*)::int AS n FROM battles
-       WHERE challenger_id = $1 AND opponent_id = $2
-         AND (created_at AT TIME ZONE $3)::date = (now() AT TIME ZONE $3)::date`,
-      [req.student.id, opponent.id, TIMEZONE]
-    );
-    if (cntRows[0].n >= BATTLE.dailyPerOpponent) {
+    if ((await countBattlesTodayBetween(req.student.id, opponent.id)) >= BATTLE.dailyPerOpponent) {
       return res.status(429).json({ error: 'daily_limit' });
     }
     const questions = generateQuestions(config);

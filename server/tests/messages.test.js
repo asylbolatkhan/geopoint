@@ -45,6 +45,21 @@ describe('M.kk.monthlyTop', () => {
   });
 });
 
+describe('onlineInvite', () => {
+  it('kk contains lightning, sender name and the 90-second window', () => {
+    const text = M.kk.onlineInvite('Айгерім');
+    expect(text).toContain('⚡');
+    expect(text).toContain('Айгерім');
+    expect(text).toContain('90');
+  });
+  it('ru contains lightning, sender name and the 90-second window', () => {
+    const text = M.ru.onlineInvite('Данияр');
+    expect(text).toContain('⚡');
+    expect(text).toContain('Данияр');
+    expect(text).toContain('90');
+  });
+});
+
 describe('M.ru.monthlyTop', () => {
   const rows = [
     { name: 'Айгерим', class_name: '10А', points: 45 },
