@@ -43,7 +43,7 @@ function fmtDate(iso, lang) {
 }
 
 function relTime(iso, t) {
-  if (!iso) return '';
+  if (!iso) return '—';
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   if (days <= 0) return t.today;
   if (days === 1) return t.yesterday;
