@@ -61,6 +61,7 @@ export const T = {
     teacherBadge: 'Мұғалім',
     teachersGroup: 'Мұғалімдер',
     notEligibleTeacher: 'Мұғалімге батл тастау үшін өткен айдың мектеп рейтингінде топ-3-ке кіру керек 🔒',
+    rematch: 'Реванш ⚔️',
     // Рейтинг
     scopeClass: 'Сынып', scopeSchool: 'Мектеп', scopeClasses: 'Сыныптар', scopeTeachers: 'Мұғалімдер',
     thisMonth: 'Осы ай', allTime: 'Барлық уақыт',
@@ -149,6 +150,7 @@ export const T = {
     teacherBadge: 'Учитель',
     teachersGroup: 'Учителя',
     notEligibleTeacher: 'Чтобы бросить баттл учителю, нужно войти в топ-3 школы за прошлый месяц 🔒',
+    rematch: 'Реванш ⚔️',
     // Рейтинг
     scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы', scopeTeachers: 'Учителя',
     thisMonth: 'Этот месяц', allTime: 'Всё время',

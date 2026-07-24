@@ -241,7 +241,13 @@ export default function BattlesTab({ lang, me }) {
         config: { continents: continents.includes('all') ? 'all' : continents, questionTypes, count },
       };
       const r = await api('/battles', { method: 'POST', body });
-      setGame({ battleId: r.battle.id, total: r.total, questionSeconds: r.questionSeconds, questions: r.questions });
+      setGame({
+        battleId: r.battle.id,
+        total: r.total,
+        questionSeconds: r.questionSeconds,
+        questions: r.questions,
+        other: { id: opponent.id, name: opponent.name, class_name: opponent.class_name ?? null, role: opponent.role },
+      });
       setFinished(null);
       setSubmitError(false);
       setPhase('playing');
@@ -260,7 +266,13 @@ export default function BattlesTab({ lang, me }) {
     try {
       const r = await api(`/battles/${id}`);
       if (r.questions) {
-        setGame({ battleId: r.battle.id, total: r.total, questionSeconds: r.questionSeconds, questions: r.questions });
+        setGame({
+          battleId: r.battle.id,
+          total: r.total,
+          questionSeconds: r.questionSeconds,
+          questions: r.questions,
+          other: r.battle.other,
+        });
         setSubmitError(false);
         setPhase('playing');
       } else {
@@ -281,7 +293,14 @@ export default function BattlesTab({ lang, me }) {
     setSubmitError(false);
     try {
       const r = await api(`/battles/${game.battleId}/submit`, { method: 'POST', body: { answers, durationMs } });
-      setFinished({ status: r.status, myCorrect: r.correct, theirCorrect: null, total: r.total, winner: r.winner ?? null });
+      setFinished({
+        status: r.status,
+        myCorrect: r.correct,
+        theirCorrect: null,
+        total: r.total,
+        winner: r.winner ?? null,
+        other: game.other,
+      });
       setPhase('finished');
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
@@ -324,6 +343,19 @@ export default function BattlesTab({ lang, me }) {
     setPhase('list');
   };
 
+  const rematch = () => {
+    haptic('light');
+    setOpponent(finished.other);
+    setContinents(['all']);
+    setQuestionTypes([...TYPE_KEYS]);
+    setCount(10);
+    setLimitError(false);
+    setGenericError(false);
+    setNotEligibleError(false);
+    setFinished(null);
+    setPhase('settings');
+  };
+
   if (phase === 'playing') {
     if (submitting || submitError) {
       return (
@@ -363,6 +395,8 @@ export default function BattlesTab({ lang, me }) {
       );
     }
     const badge = resultBadge(finished, t);
+    const canRematch = ['completed', 'declined', 'expired'].includes(finished.status)
+      && finished.other?.id && finished.other.role !== 'admin';
     return (
       <div className="flex flex-col gap-4">
         <Card className="flex flex-col items-center gap-2 text-center">
@@ -373,7 +407,18 @@ export default function BattlesTab({ lang, me }) {
             </div>
           )}
         </Card>
-        <button type="button" onClick={backToList} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
+        {canRematch && (
+          <button type="button" onClick={rematch} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
+            {t.rematch}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={backToList}
+          className={`w-full rounded-xl py-3 font-bold ${
+            canRematch ? 'bg-slate-800 border border-slate-700 text-slate-300' : 'bg-sky-500 text-white'
+          }`}
+        >
           {t.done}
         </button>
       </div>
