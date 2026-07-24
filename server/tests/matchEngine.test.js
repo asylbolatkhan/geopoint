@@ -286,6 +286,8 @@ describe('disconnect / reconnect', () => {
     expect(timerOf(r.effects, 'roundDeadline').at).toBe(24000 + ANSWER_GRACE_MS);
     const snap = sendTo(r.effects, 'match:snapshot', 'B').msg;
     expect(snap.phase).toBe('round_active');
+    expect(snap.matchId).toBe('m1');
+    expect(snap.total).toBe(3);
     expect(snap.deadline).toBe(24000);
     expect(snap.question.options).toHaveLength(4);
     expect(sendTo(r.effects, 'match:opponent_reconnected', 'A').msg.deadline).toBe(24000);
@@ -428,7 +430,7 @@ describe('snapshotFor', () => {
     const { state } = makeMatch();
     const s = snapshotFor(state, 'A', 2000);
     expect(s).toMatchObject({
-      type: 'match:snapshot', phase: 'countdown', round: 0,
+      type: 'match:snapshot', matchId: 'm1', total: 3, phase: 'countdown', round: 0,
       countdownEndsAt: 4000, scores: { you: 0, opponent: 0 }, serverNow: 2000,
     });
     expect(s.opponent).toEqual({ id: 'B', name: 'Bek', class_name: '7B' });
@@ -440,6 +442,8 @@ describe('snapshotFor', () => {
     toRound0(state);
     const s = snapshotFor(state, 'B', 5000);
     expect(s.phase).toBe('round_active');
+    expect(s.matchId).toBe('m1'); // клиент sendAnswer/leaveMatch үшін міндетті
+    expect(s.total).toBe(3);
     expect(s.deadline).toBe(19000);
     expect(s.question.options).toHaveLength(4);
     expect(s.question).not.toHaveProperty('index');

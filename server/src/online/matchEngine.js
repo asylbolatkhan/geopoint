@@ -312,6 +312,7 @@ export function snapshotFor(state, studentId, now) {
   const opp = state.players[otherId(state, p.id)];
   const msg = {
     type: 'match:snapshot',
+    matchId: state.matchId, total: state.totalRounds,
     phase: state.phase, round: state.round,
     scores: { you: p.score, opponent: opp.score },
     opponent: publicInfo(opp),

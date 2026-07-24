@@ -33,22 +33,27 @@ function handleMessage(state, msg) {
         invite: { inviteId: msg.inviteId, expiresAt: msg.expiresAt },
       };
 
-    case 'invite:declined':
-    case 'invite:expired': {
-      // МЕНІҢ шығыс шақыруым үшін ғана overlay-ді жабамыз
+    case 'invite:declined': {
+      // сервер мұны тек fromId-ге жібереді → корреляциясыз жабуға болады
       if (state.overlay === 'waiting') {
-        return {
-          ...state,
-          overlay: 'idle',
-          invite: null,
-          lastError: msg.type === 'invite:declined' ? 'declined' : 'expired',
-        };
-      }
-      // қорғаныс: кіріс шақыру серверде өшсе — жергілікті де тазалаймыз
-      if (msg.inviteId && state.incomingInvite?.inviteId === msg.inviteId) {
-        return { ...state, incomingInvite: null };
+        return { ...state, overlay: 'idle', invite: null, lastError: 'declined' };
       }
       return state;
+    }
+
+    case 'invite:expired': {
+      // invite:expired МАҒАН қатысты КЕЗ КЕЛГЕН шақыру үшін келуі мүмкін
+      // (мыс. үшінші тараптан келген кіріс шақыру өшкенде) → inviteId бойынша
+      // корреляция міндетті. inviteId жоқ болса — ескі мінез-құлыққа қайтамыз.
+      let next = state;
+      const mine = msg.inviteId == null || msg.inviteId === state.invite?.inviteId;
+      if (state.overlay === 'waiting' && mine) {
+        next = { ...next, overlay: 'idle', invite: null, lastError: 'expired' };
+      }
+      if (msg.inviteId != null && msg.inviteId === state.incomingInvite?.inviteId) {
+        next = { ...next, incomingInvite: null };
+      }
+      return next;
     }
 
     case 'invite:incoming':
@@ -66,6 +71,7 @@ function handleMessage(state, msg) {
       return { ...state, incomingInvite: null };
 
     case 'invite:error': {
+      // invite:error inviteId алып жүрмейді — корреляциясыз өңдейміз (қабылданған шектеу)
       const next = { ...state, lastError: msg.code || 'error' };
       if (state.overlay === 'waiting') {
         next.overlay = 'idle';
@@ -158,10 +164,11 @@ function handleMessage(state, msg) {
         overlay,
         invite: null,
         match: {
-          matchId: msg.matchId,
+          // қорғаныс: ескі серверде snapshot matchId/total-сыз келсе — бұрынғы мәндер сақталады
+          matchId: msg.matchId ?? state.match?.matchId ?? null,
           opponent: msg.opponent,
           round: msg.round,
-          total: msg.total,
+          total: msg.total ?? state.match?.total ?? null,
           question: msg.question ?? null,
           deadline: msg.deadline ?? null,
           revealPayload: msg.revealPayload ?? null,
