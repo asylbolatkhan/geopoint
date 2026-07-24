@@ -42,6 +42,14 @@ function fmtDate(iso, lang) {
   return new Date(iso).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'kk-KZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function relTime(iso, t) {
+  if (!iso) return '';
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (days <= 0) return t.today;
+  if (days === 1) return t.yesterday;
+  return t.daysAgo(days);
+}
+
 // ---------- Pending ----------
 
 function PendingSection({ t, lang, classes, list, loading, error, onRetry, onMutated }) {
@@ -440,7 +448,7 @@ function StatsSection({ t, lang, data, loading, error, onRetry }) {
   if (error) return <ErrorRetry t={t} onRetry={onRetry} />;
   if (!data) return null;
 
-  const { students, continents, missed, inactive7d } = data;
+  const { students, continents, missed, inactive7d, classSummary } = data;
 
   return (
     <div className="flex flex-col gap-4">
@@ -452,6 +460,7 @@ function StatsSection({ t, lang, data, loading, error, onRetry }) {
               <th className="font-medium pb-2 text-right">{t.games}</th>
               <th className="font-medium pb-2 text-right">{t.accuracy}</th>
               <th className="font-medium pb-2 text-right">{t.points}</th>
+              <th className="font-medium pb-2 text-right">{t.lastActive}</th>
             </tr>
           </thead>
           <tbody>
@@ -461,11 +470,40 @@ function StatsSection({ t, lang, data, loading, error, onRetry }) {
                 <td className="py-1.5 text-right">{s.games}</td>
                 <td className={`py-1.5 text-right ${accuracyColor(s.accuracy)}`}>{s.accuracy}%</td>
                 <td className="py-1.5 text-right text-sky-400 font-semibold">{s.month_points}</td>
+                <td className="py-1.5 text-right text-slate-400 text-xs whitespace-nowrap">{relTime(s.last_active, t)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
+
+      {classSummary?.length > 0 && (
+        <Card className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold text-slate-300">{t.statClasses}</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="text-slate-400 text-xs">
+                  <th className="font-medium pb-2">{t.scopeClass}</th>
+                  <th className="font-medium pb-2 text-right">{t.students}</th>
+                  <th className="font-medium pb-2 text-right">{t.accuracy}</th>
+                  <th className="font-medium pb-2 text-right">{t.points}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classSummary.map((c) => (
+                  <tr key={c.id} className="border-t border-slate-700/50">
+                    <td className="py-1.5 truncate max-w-[8rem]">{c.class_name}</td>
+                    <td className="py-1.5 text-right">{c.students}</td>
+                    <td className={`py-1.5 text-right ${accuracyColor(c.accuracy)}`}>{c.accuracy}%</td>
+                    <td className="py-1.5 text-right text-sky-400 font-semibold">{c.month_points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold text-slate-300">{t.statContinents}</h3>

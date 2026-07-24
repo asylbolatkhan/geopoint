@@ -93,6 +93,8 @@ export const T = {
     statContinents: 'Құрлық бойынша қиындық', statMissed: 'Ең көп қателесетін елдер',
     statInactive: 'Соңғы 7 күнде ойнамағандар', games: 'ойын', asked: 'сұралды', missed: 'қате',
     changeClass: 'Сыныбын өзгерту',
+    lastActive: 'Белсенділік', today: 'бүгін', yesterday: 'кеше', daysAgo: (n) => `${n} күн бұрын`,
+    statClasses: 'Сыныптар бойынша',
     reasonNames: {
       battle_win: 'Батл жеңісі', battle_draw: 'Батл тең', battle_loss: 'Батл жеңілісі',
       battle_correct: 'Батл: дұрыс жауаптар', battle_expired_bonus: 'Батл: жауапсыз (бонус)',
@@ -193,6 +195,8 @@ export const T = {
     statContinents: 'Сложность по континентам', statMissed: 'Страны с наибольшим числом ошибок',
     statInactive: 'Не играли последние 7 дней', games: 'игр', asked: 'задано', missed: 'ошибок',
     changeClass: 'Изменить класс',
+    lastActive: 'Активность', today: 'сегодня', yesterday: 'вчера', daysAgo: (n) => `${n} дн. назад`,
+    statClasses: 'По классам',
     reasonNames: {
       battle_win: 'Победа в баттле', battle_draw: 'Ничья в баттле', battle_loss: 'Поражение в баттле',
       battle_correct: 'Баттл: правильные ответы', battle_expired_bonus: 'Баттл: без ответа (бонус)',
