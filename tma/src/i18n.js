@@ -61,6 +61,7 @@ export const T = {
     teacherBadge: 'Мұғалім',
     teachersGroup: 'Мұғалімдер',
     notEligibleTeacher: 'Мұғалімге батл тастау үшін өткен айдың мектеп рейтингінде топ-3-ке кіру керек 🔒',
+    rematch: 'Реванш ⚔️',
     // Рейтинг
     scopeClass: 'Сынып', scopeSchool: 'Мектеп', scopeClasses: 'Сыныптар', scopeTeachers: 'Мұғалімдер',
     thisMonth: 'Осы ай', allTime: 'Барлық уақыт',
@@ -70,6 +71,17 @@ export const T = {
     monthPoints: 'Осы айдағы ұпай', totalPoints: 'Барлық ұпай',
     wins: 'Жеңіс', losses: 'Жеңіліс', draws: 'Тең',
     soloGames: 'Жаттығулар', accuracy: 'Дәлдік',
+    days: 'күн', streakTitle: 'Күн сериясы', streakBest: 'Рекорд',
+    achievementsTitle: 'Жетістіктер',
+    badges: {
+      firstWin: { name: 'Алғашқы жеңіс', desc: 'Батлда 1 рет жеңу' },
+      wins10: { name: 'Жеңімпаз', desc: 'Батлда 10 рет жеңу' },
+      solo50: { name: 'Еңбекқор', desc: '50 жаттығу аяқтау' },
+      perfect: { name: 'Мінсіз ойын', desc: '10+ сұрақтың бәріне дұрыс жауап беру' },
+      streak3: { name: 'Қызу серия', desc: '3 күн қатарынан ойнау' },
+      streak7: { name: 'Апталық серия', desc: '7 күн қатарынан ойнау' },
+      points500: { name: 'Жарты мың', desc: 'Барлығы 500 ұпай жинау' },
+    },
     // Админ
     adminPending: 'Өтінімдер', adminStudents: 'Оқушылар', adminClasses: 'Сыныптар', adminStats: 'Статистика',
     approve: 'Қабылдау', reject: 'Қабылдамау', delete: 'Өшіру', save: 'Сақтау',
@@ -81,6 +93,8 @@ export const T = {
     statContinents: 'Құрлық бойынша қиындық', statMissed: 'Ең көп қателесетін елдер',
     statInactive: 'Соңғы 7 күнде ойнамағандар', games: 'ойын', asked: 'сұралды', missed: 'қате',
     changeClass: 'Сыныбын өзгерту',
+    lastActive: 'Белсенділік', today: 'бүгін', yesterday: 'кеше', daysAgo: (n) => `${n} күн бұрын`,
+    statClasses: 'Сыныптар бойынша',
     reasonNames: {
       battle_win: 'Батл жеңісі', battle_draw: 'Батл тең', battle_loss: 'Батл жеңілісі',
       battle_correct: 'Батл: дұрыс жауаптар', battle_expired_bonus: 'Батл: жауапсыз (бонус)',
@@ -149,6 +163,7 @@ export const T = {
     teacherBadge: 'Учитель',
     teachersGroup: 'Учителя',
     notEligibleTeacher: 'Чтобы бросить баттл учителю, нужно войти в топ-3 школы за прошлый месяц 🔒',
+    rematch: 'Реванш ⚔️',
     // Рейтинг
     scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы', scopeTeachers: 'Учителя',
     thisMonth: 'Этот месяц', allTime: 'Всё время',
@@ -158,6 +173,17 @@ export const T = {
     monthPoints: 'Очки за этот месяц', totalPoints: 'Всего очков',
     wins: 'Победы', losses: 'Поражения', draws: 'Ничьи',
     soloGames: 'Тренировки', accuracy: 'Точность',
+    days: 'дней', streakTitle: 'Серия дней', streakBest: 'Рекорд',
+    achievementsTitle: 'Достижения',
+    badges: {
+      firstWin: { name: 'Первая победа', desc: 'Выиграй 1 баттл' },
+      wins10: { name: 'Чемпион', desc: 'Выиграй 10 баттлов' },
+      solo50: { name: 'Трудяга', desc: 'Заверши 50 тренировок' },
+      perfect: { name: 'Идеальная игра', desc: 'Ответь верно на все вопросы (10+)' },
+      streak3: { name: 'Горячая серия', desc: 'Играй 3 дня подряд' },
+      streak7: { name: 'Недельная серия', desc: 'Играй 7 дней подряд' },
+      points500: { name: 'Полтысячи', desc: 'Набери 500 очков за всё время' },
+    },
     // Админ
     adminPending: 'Заявки', adminStudents: 'Ученики', adminClasses: 'Классы', adminStats: 'Статистика',
     approve: 'Принять', reject: 'Отклонить', delete: 'Удалить', save: 'Сохранить',
@@ -169,6 +195,8 @@ export const T = {
     statContinents: 'Сложность по континентам', statMissed: 'Страны с наибольшим числом ошибок',
     statInactive: 'Не играли последние 7 дней', games: 'игр', asked: 'задано', missed: 'ошибок',
     changeClass: 'Изменить класс',
+    lastActive: 'Активность', today: 'сегодня', yesterday: 'вчера', daysAgo: (n) => `${n} дн. назад`,
+    statClasses: 'По классам',
     reasonNames: {
       battle_win: 'Победа в баттле', battle_draw: 'Ничья в баттле', battle_loss: 'Поражение в баттле',
       battle_correct: 'Баттл: правильные ответы', battle_expired_bonus: 'Баттл: без ответа (бонус)',

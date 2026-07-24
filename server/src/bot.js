@@ -32,6 +32,21 @@ export async function notifyAdmins(textByLang) {
   }
 }
 
+// Барлық қабылданған қолданушыларға хабарлайды. Telegram-дың ~30 хабарлама/сек
+// шегінен аспас үшін Promise.all емес, кезекпен + 50мс кідіріспен жібереді.
+export async function notifyAllApproved(textByLang) {
+  if (!bot) return;
+  try {
+    const { rows } = await query("SELECT tg_user_id, lang FROM students WHERE status = 'approved'");
+    for (const s of rows) {
+      await notify(s.tg_user_id, textByLang(s.lang), s.lang);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  } catch (e) {
+    console.error('notifyAllApproved failed:', e.message);
+  }
+}
+
 export function startBot() {
   if (!bot) {
     console.log('BOT_TOKEN not set — bot disabled');

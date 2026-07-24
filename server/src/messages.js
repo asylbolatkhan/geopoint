@@ -1,3 +1,23 @@
+const MONTH_NAMES = {
+  kk: ['қаңтар', 'ақпан', 'наурыз', 'сәуір', 'мамыр', 'маусым',
+    'шілде', 'тамыз', 'қыркүйек', 'қазан', 'қараша', 'желтоқсан'],
+  ru: ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+    'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'],
+};
+
+// 'YYYY-MM' → 'маусым 2026' / 'июнь 2026'
+export function monthLabel(key, lang = 'kk') {
+  const [year, month] = key.split('-');
+  return `${MONTH_NAMES[lang][Number(month) - 1]} ${year}`;
+}
+
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function topLine(medal, row, unit) {
+  const classPart = row.class_name ? ` (${row.class_name})` : '';
+  return `${medal} ${row.name}${classPart} — ${row.points} ${unit}`;
+}
+
 export const M = {
   kk: {
     start: 'ГеоВикторинаға қош келдің! 🌍 Ойынды ашу үшін төмендегі батырманы бас.',
@@ -13,6 +33,10 @@ export const M = {
     battleDeclined: (name) => `❌ ${name} батлыңды қабылдамады. Саған +10 ұпай жазылды.`,
     battleExpired: (name) => `⏰ ${name} батлыңа 48 сағатта жауап бермеді. Саған +10 ұпай жазылды.`,
     battleExpiredIdle: (name) => `⏰ ${name} тастаған батлға жауап бермедің: −10 ұпай.`,
+    monthlyTop: (key, rows) => {
+      const lines = rows.map((r, i) => topLine(MEDALS[i], r, 'ұпай')).join('\n');
+      return `🏆 ${monthLabel(key, 'kk')} айының топ-3:\n\n${lines}\n\nЖаңа ай — жаңа жарыс! 💪`;
+    },
   },
   ru: {
     start: 'Добро пожаловать в ГеоВикторину! 🌍 Нажми кнопку ниже, чтобы открыть игру.',
@@ -28,5 +52,9 @@ export const M = {
     battleDeclined: (name) => `❌ ${name} отклонил(а) твой баттл. Тебе начислено +10 очков.`,
     battleExpired: (name) => `⏰ ${name} не ответил(а) на баттл за 48 часов. Тебе +10 очков.`,
     battleExpiredIdle: (name) => `⏰ Ты не ответил(а) на баттл от ${name}: −10 очков.`,
+    monthlyTop: (key, rows) => {
+      const lines = rows.map((r, i) => topLine(MEDALS[i], r, 'очков')).join('\n');
+      return `🏆 Топ-3 месяца — ${monthLabel(key, 'ru')}:\n\n${lines}\n\nНовый месяц — новая гонка! 💪`;
+    },
   },
 };

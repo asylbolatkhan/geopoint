@@ -9,6 +9,14 @@ export function monthKey(date = new Date()) {
   return `${get('year')}-${get('month')}`;
 }
 
+export function dayKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
 // 'YYYY-MM' → алдыңғы айдың кілті ('2026-01' → '2025-12')
 export function prevMonthKey(key = monthKey()) {
   const [y, m] = key.split('-').map(Number);
