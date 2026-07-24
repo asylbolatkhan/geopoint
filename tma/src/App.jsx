@@ -12,6 +12,8 @@ import RatingTab from './screens/RatingTab';
 import ProfileTab from './screens/ProfileTab';
 import AdminTab from './screens/AdminTab';
 import OnlineProvider from './online/OnlineProvider';
+import InviteToast from './online/InviteToast';
+import OnlineMatchOverlay from './online/OnlineMatchOverlay';
 
 const notInTelegram = getAuthHeader() === '';
 
@@ -73,6 +75,8 @@ export default function App() {
 
   return (
     <OnlineProvider me={me}>
+      <InviteToast lang={lang} />
+      <OnlineMatchOverlay lang={lang} />
       <div className="min-h-screen bg-slate-900 text-slate-100">
         <div className="max-w-md mx-auto p-4 pb-20">
           {active === 'play' && <PlayTab lang={lang} />}
