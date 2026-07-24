@@ -20,12 +20,19 @@ function safeParse(raw) {
  * hooks (барлығы міндетті емес, Task 4 толтырады):
  *   onOpen(student, ws)             — тіркелгеннен, hello жіберілгеннен кейін
  *   onMessage(student, ws, msg)     — ping/presence:get-тен басқа кез келген танылған JSON хабарлама
- *   onClose(student, ws)            — сокет жабылғанда (registry-ден өшірілгеннен кейін)
+ *   onClose(student, ws)            — сокет жабылғанда, ТЕК registry-ден іс жүзінде
+ *                                      өшірілсе (яғни ws сол студенттің ЕҢ СОҢҒЫ сокеті
+ *                                      болса); екінші құрылғыдан қосылу кезінде ескі
+ *                                      сокеттің close-ы бойынша шақырылмайды.
  */
 export function attachWsServer(server, hooks = {}) {
   const wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', async (req, socket, head) => {
+    // Async auth-тан бұрын: клиент ECONNRESET жасаса (мобильде жиі), тыңдаушысыз
+    // 'error' оқиғасы бүкіл процесті құлатады. Сонымен қатар төмендегі 401 write
+    // жойылған сокетке жазып қалмас үшін де қорғаныс.
+    socket.on('error', () => {});
     // ЕСКЕРТУ: req.url ЕШҚАШАН логталмайды — құрамында auth токені бар.
     let pathname = '';
     let token = '';
@@ -64,6 +71,8 @@ export function attachWsServer(server, hooks = {}) {
   wss.on('connection', (ws) => {
     const student = ws.student;
     ws.isAlive = true;
+    // Бұзық фрейм/UTF-8/протокол бұзылысы 'error' жібереді — тыңдаушысыз процесс құлайды.
+    ws.on('error', () => {});
     ws.on('pong', () => {
       ws.isAlive = true;
     });
@@ -95,8 +104,15 @@ export function attachWsServer(server, hooks = {}) {
     });
 
     ws.on('close', () => {
-      registry.unregister(student.id, ws);
-      hooks.onClose?.(student, ws);
+      // unregister() тек ws әлі де студенттің АҒЫМДАҒЫ сокеті болса ғана true
+      // қайтарады. Екінші құрылғыдан қосылу кезінде register() ескі сокетті
+      // 4001-мен жабады — сол ескі сокеттің 'close' оқиғасы бойынша onClose
+      // шақырылмауы керек (студент әлі желіде, жаңа сокетпен) — болмаса,
+      // Task 4-тегі onClose→applyDisconnect идиомасы белсенді матчты
+      // қателесіп «үзілді» деп таныр еді.
+      if (registry.unregister(student.id, ws)) {
+        hooks.onClose?.(student, ws);
+      }
     });
   });
 

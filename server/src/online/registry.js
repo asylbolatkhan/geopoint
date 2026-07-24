@@ -25,8 +25,14 @@ export function register(studentId, ws) {
 
 // Тек ws әлі де сол студенттің ағымдағы сокеті болса ғана өшіреді (ескі,
 // орнын басылған сокеттің close оқиғасы жаңа тіркеуді қателесіп өшірмеуі үшін).
+// Іс жүзінде өшірсе true, әйтпесе (ws бұрыннан ауыстырылған) false қайтарады —
+// шақырушы жаққа осы сокет әлі де студенттің "ағымдағысы" болғанын білдіреді.
 export function unregister(studentId, ws) {
-  if (sockets.get(studentId) === ws) sockets.delete(studentId);
+  if (sockets.get(studentId) === ws) {
+    sockets.delete(studentId);
+    return true;
+  }
+  return false;
 }
 
 export function isOnline(studentId) {
