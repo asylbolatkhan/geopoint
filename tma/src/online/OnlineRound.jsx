@@ -11,6 +11,7 @@ export default function OnlineRound({ lang }) {
   const { match, overlay, sendAnswer, leaveMatch, serverNowMs } = useOnline();
   const t = useT(lang);
   const [picked, setPicked] = useState(null);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [, setTick] = useState(0);
   const remainingRef = useRef(ROUND_MS); // disconnect кезінде көрсетілетін «қатқан» мән
 
@@ -21,6 +22,7 @@ export default function OnlineRound({ lang }) {
   // Жаңа раунд → локал таңдау тазаланады
   useEffect(() => {
     setPicked(null);
+    setLeaveConfirm(false);
   }, [round]);
 
   // Таймер tick — тек белсенді раундта және pause жоқта
@@ -61,10 +63,7 @@ export default function OnlineRound({ lang }) {
     sendAnswer(match.matchId, match.round, i);
   };
 
-  const onLeave = () => {
-    if (window.confirm(t.onlineLeaveConfirm)) leaveMatch();
-  };
-
+  // window.confirm iOS Telegram WebView-те жұмыс істемейді → инлайн екі-тап confirm
   return (
     <div className="flex flex-col gap-4 p-4 max-w-md mx-auto w-full">
       <div className="flex items-center justify-between text-slate-400 text-sm">
@@ -72,8 +71,35 @@ export default function OnlineRound({ lang }) {
         <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 font-semibold">
           {t.youLabel} {match.scores.you} : {match.scores.opponent}
         </span>
-        <button onClick={onLeave} className="text-slate-500 underline text-xs">{t.onlineLeave}</button>
+        <button
+          onClick={() => { haptic('light'); setLeaveConfirm(true); }}
+          className="text-slate-500 underline text-xs"
+        >
+          {t.onlineLeave}
+        </button>
       </div>
+
+      {leaveConfirm && (
+        <div className="flex flex-col gap-2 rounded-xl border border-slate-700 bg-slate-800/80 p-3">
+          <p className="text-slate-300 text-sm text-center">{t.onlineLeaveConfirm}</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { haptic('light'); leaveMatch(); }}
+              className="flex-1 rounded-lg py-2 text-sm font-semibold bg-red-500 text-white"
+            >
+              {t.yes}
+            </button>
+            <button
+              type="button"
+              onClick={() => { haptic('light'); setLeaveConfirm(false); }}
+              className="flex-1 rounded-lg py-2 text-sm font-semibold bg-slate-800 border border-slate-700 text-slate-300"
+            >
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-xs">
         <span className={`px-2 py-0.5 rounded-full border ${match.opponentAnswered ? 'border-green-500/50 text-green-400 bg-green-500/10' : 'border-slate-700 text-slate-400 bg-slate-800'}`}>

@@ -43,7 +43,7 @@ export const T = {
     feedbackCorrect: 'Дұрыс! ✅', feedbackWrong: 'Қате ❌',
     // Батлдар
     newBattle: 'Батл тастау ⚔️',
-    onlineBattle: 'Онлайн батл', comingSoon: 'Жақын арада 🔒',
+    onlineBattle: 'Онлайн батл',
     chooseOpponent: 'Қарсылас таңда', myClass: 'Менің сыныбым', allSchool: 'Бүкіл мектеп',
     searchName: 'Аты бойынша іздеу…',
     battleSettings: 'Батл параметрлері', throwBattle: 'Тастау',
@@ -167,7 +167,7 @@ export const T = {
     feedbackCorrect: 'Верно! ✅', feedbackWrong: 'Неверно ❌',
     // Баттлы
     newBattle: 'Бросить баттл ⚔️',
-    onlineBattle: 'Онлайн баттл', comingSoon: 'Скоро 🔒',
+    onlineBattle: 'Онлайн баттл',
     chooseOpponent: 'Выбери соперника', myClass: 'Мой класс', allSchool: 'Вся школа',
     searchName: 'Поиск по имени…',
     battleSettings: 'Настройки баттла', throwBattle: 'Бросить',

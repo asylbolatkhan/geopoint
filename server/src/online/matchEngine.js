@@ -324,6 +324,10 @@ export function snapshotFor(state, studentId, now) {
     msg.question = questionFor(state, p.id);
     msg.deadline = effDeadline;
   }
-  if (state.phase === 'round_reveal') msg.revealPayload = revealPayloadFor(state, p.id, now);
+  if (state.phase === 'round_reveal') {
+    // reveal кезінде reconnect болса — клиентке сұрақ та керек (бос overlay болмас үшін)
+    msg.question = questionFor(state, p.id);
+    msg.revealPayload = revealPayloadFor(state, p.id, now);
+  }
   return msg;
 }

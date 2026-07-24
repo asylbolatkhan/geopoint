@@ -327,7 +327,9 @@ describe('disconnect / reconnect', () => {
     expect(state.paused).toBe(false);
     expect(state.phaseDeadline).toBe(12000 + REVEAL_MS);
     expect(timerOf(r2.effects, 'revealEnd').at).toBe(12000 + REVEAL_MS);
-    expect(sendTo(r2.effects, 'match:snapshot', 'B').msg.revealPayload.round).toBe(0);
+    const snap2 = sendTo(r2.effects, 'match:snapshot', 'B').msg;
+    expect(snap2.revealPayload.round).toBe(0);
+    expect(snap2.question.options).toHaveLength(4);
   });
 });
 
@@ -461,6 +463,9 @@ describe('snapshotFor', () => {
       scores: { you: 1, opponent: 0 }, nextRoundAt: 8500,
     });
     expect(s.scores).toEqual({ you: 1, opponent: 0 });
+    // reveal-фазадағы snapshot сұрақты да алып жүруі керек (reconnect кезінде бос overlay болмас үшін)
+    expect(s.question.options).toHaveLength(4);
+    expect(s.question).not.toHaveProperty('index');
   });
 
   it('паузада deadline = now + қалған уақыт', () => {

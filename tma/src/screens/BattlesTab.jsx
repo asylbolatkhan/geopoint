@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from '../api';
 import { haptic } from '../telegram';
 import { useT } from '../i18n';
+import { useOnline } from '../online/OnlineProvider';
 import Card from '../components/Card';
 import QuizPlay from '../components/QuizPlay';
 
@@ -62,7 +63,14 @@ function BattleRow({ b, t, onOpen, showDecline, declineOpen, onDeclineToggle, on
   return (
     <Card className="flex flex-col gap-2">
       <div onClick={() => onOpen(b.id)} className="flex flex-col gap-1 cursor-pointer active:opacity-70">
-        <div className="font-medium">⚔️ {b.other.name} · {b.other.class_name ?? (b.other.role === 'teacher' ? t.teacherBadge : '')}</div>
+        <div className="font-medium flex items-center gap-2 flex-wrap">
+          <span>⚔️ {b.other.name} · {b.other.class_name ?? (b.other.role === 'teacher' ? t.teacherBadge : '')}</span>
+          {b.mode === 'online' && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-semibold">
+              ⚡ {t.onlineLabel}
+            </span>
+          )}
+        </div>
         {b.status === 'awaiting_opponent' ? (
           !b.mySubmitted ? (
             <span className="text-sky-400 font-semibold text-sm">{t.yourTurn}</span>
@@ -112,8 +120,10 @@ function BattleRow({ b, t, onOpen, showDecline, declineOpen, onDeclineToggle, on
 
 export default function BattlesTab({ lang, me }) {
   const t = useT(lang);
+  const { wsStatus, onlineIds, refreshPresence, sendInvite, overlay, lastError, clearError } = useOnline();
 
   const [phase, setPhase] = useState('list'); // list | pickOpponent | settings | playing | finished
+  const [battleMode, setBattleMode] = useState('async'); // async | online
 
   // list
   const [battles, setBattles] = useState([]);
@@ -164,6 +174,14 @@ export default function BattlesTab({ lang, me }) {
     if (phase === 'list') fetchList();
   }, [phase]);
 
+  // Онлайн-режимде қарсылас таңдау экранына кірген сайын presence жаңартылады
+  useEffect(() => {
+    if (phase === 'pickOpponent' && battleMode === 'online') refreshPresence();
+  }, [phase, battleMode, refreshPresence]);
+
+  // Таб жабылғанда ескі invite-қате келесі ашылуға ілеспейді
+  useEffect(() => () => clearError(), [clearError]);
+
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(id);
@@ -206,7 +224,7 @@ export default function BattlesTab({ lang, me }) {
     setQuestionTypes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
-  const startPick = () => {
+  const startPick = (mode = 'async') => {
     haptic('light');
     setClosedNotice(false);
     setScope('myClass');
@@ -214,6 +232,8 @@ export default function BattlesTab({ lang, me }) {
     setDebouncedSearch('');
     setStudents([]);
     setTeacherLockHint(false);
+    setBattleMode(mode);
+    if (mode === 'online') clearError();
     setPhase('pickOpponent');
   };
 
@@ -227,6 +247,26 @@ export default function BattlesTab({ lang, me }) {
     setGenericError(false);
     setNotEligibleError(false);
     setPhase('settings');
+  };
+
+  // Онлайн шақыру: WS арқылы жіберіледі, жауап (waiting overlay / invite:error)
+  // App-деңгейлі OnlineProvider-ге келеді → таб бірден тізімге қайтады
+  const sendOnlineInvite = () => {
+    if (questionTypes.length === 0) return;
+    haptic('light');
+    if (wsStatus !== 'open') {
+      // сокет жабық — send үнсіз жоғалады, сондықтан бірден қате көрсетеміз
+      setGenericError(true);
+      return;
+    }
+    clearError();
+    sendInvite(opponent.id, {
+      continents: continents.includes('all') ? 'all' : continents,
+      questionTypes,
+      count,
+    });
+    setBattleMode('async');
+    setPhase('list');
   };
 
   const throwBattle = async () => {
@@ -345,6 +385,7 @@ export default function BattlesTab({ lang, me }) {
 
   const rematch = () => {
     haptic('light');
+    setBattleMode('async');
     setOpponent(finished.other);
     setContinents(['all']);
     setQuestionTypes([...TYPE_KEYS]);
@@ -426,10 +467,14 @@ export default function BattlesTab({ lang, me }) {
   }
 
   if (phase === 'pickOpponent') {
+    const onlineSet = new Set((onlineIds || []).map(String));
+    const onlineDot = (id) => (battleMode === 'online' && onlineSet.has(String(id)) ? (
+      <span title={t.onlineNow} className="w-2 h-2 bg-green-500 rounded-full inline-block shrink-0" />
+    ) : null);
     return (
       <div className="flex flex-col gap-4">
-        <BackBtn onClick={() => setPhase('list')} />
-        <h2 className="text-lg font-bold">{t.chooseOpponent}</h2>
+        <BackBtn onClick={() => { setBattleMode('async'); setPhase('list'); }} />
+        <h2 className="text-lg font-bold">{battleMode === 'online' ? <>⚡ {t.onlineBattle}: {t.chooseOpponent}</> : t.chooseOpponent}</h2>
         {me.role !== 'teacher' && (
           <div className="flex gap-2">
             <Chip selected={scope === 'myClass'} onClick={() => setScope('myClass')}>{t.myClass}</Chip>
@@ -454,7 +499,7 @@ export default function BattlesTab({ lang, me }) {
                     onClick={() => selectOpponent(s)}
                     className="cursor-pointer active:opacity-70 flex items-center justify-between"
                   >
-                    <span className="font-medium">{s.name}</span>
+                    <span className="font-medium flex items-center gap-2">{s.name}{onlineDot(s.id)}</span>
                     <span className="text-slate-400 text-sm">{s.class_name}</span>
                   </Card>
                 ))}
@@ -477,7 +522,10 @@ export default function BattlesTab({ lang, me }) {
                         eligibleForTeacherBattle ? '' : 'opacity-50'
                       }`}
                     >
-                      <span className="font-medium">{eligibleForTeacherBattle ? '' : '🔒 '}{s.name}</span>
+                      <span className="font-medium flex items-center gap-2">
+                        <span>{eligibleForTeacherBattle ? '' : '🔒 '}{s.name}</span>
+                        {onlineDot(s.id)}
+                      </span>
                       <span className="text-slate-400 text-sm">{t.teacherBadge}</span>
                     </Card>
                   ))}
@@ -539,11 +587,13 @@ export default function BattlesTab({ lang, me }) {
 
         <button
           type="button"
-          onClick={throwBattle}
+          onClick={battleMode === 'online' ? sendOnlineInvite : throwBattle}
           disabled={questionTypes.length === 0 || starting}
-          className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white disabled:opacity-50"
+          className={`w-full rounded-xl py-3 font-bold text-white disabled:opacity-50 ${
+            battleMode === 'online' ? 'bg-violet-500' : 'bg-sky-500'
+          }`}
         >
-          {starting ? t.loading : t.throwBattle}
+          {battleMode === 'online' ? `⚡ ${t.throwBattle}` : starting ? t.loading : t.throwBattle}
         </button>
       </div>
     );
@@ -552,6 +602,18 @@ export default function BattlesTab({ lang, me }) {
   // list
   const active = battles.filter((b) => b.status === 'awaiting_opponent');
   const history = battles.filter((b) => b.status !== 'awaiting_opponent').slice(0, 20);
+
+  // invite:error / declined / expired → t-кілттер (онлайн шақыру нәтижесінің банері)
+  const onlineErrorText = {
+    daily_cap: t.dailyLimitError,
+    not_eligible: t.notEligibleTeacher,
+    busy_target: t.onlineOpponentBusy,
+    busy_you: t.onlineOpponentBusy,
+    challenger_offline: t.onlineInviteExpired,
+    not_found: t.onlineInviteExpired,
+    expired: t.onlineInviteExpired,
+    declined: t.onlineInviteDeclined,
+  }[lastError] || t.errorGeneric;
 
   return (
     <div className="flex flex-col gap-5">
@@ -565,17 +627,22 @@ export default function BattlesTab({ lang, me }) {
           {t.errorGeneric}
         </Card>
       )}
+      {lastError && overlay === 'idle' && (
+        <Card className="border-amber-500/50 text-amber-300 text-sm text-center" onClick={clearError}>
+          ⚡ {onlineErrorText}
+        </Card>
+      )}
 
       <div className="flex flex-col gap-2">
-        <button type="button" onClick={startPick} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
+        <button type="button" onClick={() => startPick('async')} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
           {t.newBattle}
         </button>
         <button
           type="button"
-          disabled
-          className="w-full bg-slate-800 text-slate-500 rounded-xl py-3 font-bold flex items-center justify-center gap-2"
+          onClick={() => startPick('online')}
+          className="w-full bg-violet-500 rounded-xl py-3 font-bold text-white flex items-center justify-center gap-2"
         >
-          {t.onlineBattle} <span className="text-xs">{t.comingSoon}</span>
+          ⚡ {t.onlineBattle}
         </button>
       </div>
 
