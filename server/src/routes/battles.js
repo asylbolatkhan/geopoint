@@ -73,14 +73,14 @@ export async function expireDueBattles() {
   return expired;
 }
 
-function summarize(b, myId) {
+export function summarize(b, myId) {
   const isChallenger = b.challenger_id === myId;
   const my = isChallenger ? b.challenger_result : b.opponent_result;
   const their = isChallenger ? b.opponent_result : b.challenger_result;
   return {
     id: b.id,
     role: isChallenger ? 'challenger' : 'opponent',
-    other: { name: b.other_name, class_name: b.other_class, role: b.other_role },
+    other: { id: isChallenger ? b.opponent_id : b.challenger_id, name: b.other_name, class_name: b.other_class, role: b.other_role },
     status: b.status,
     mySubmitted: !!my,
     myCorrect: my ? my.correct : null,
