@@ -19,7 +19,7 @@ battlesRouter.use(requireApproved);
 const challengerSeed = (battleId) => battleId * 2;
 const opponentSeed = (battleId) => battleId * 2 + 1;
 
-async function applyWhoEvents(client, events, battle) {
+export async function applyWhoEvents(client, events, battle) {
   for (const e of events) {
     const studentId = e.who === 'challenger' ? battle.challenger_id : battle.opponent_id;
     await awardPoints(studentId, e.amount, e.reason, battle.id, client);
@@ -82,6 +82,7 @@ export function summarize(b, myId) {
     role: isChallenger ? 'challenger' : 'opponent',
     other: { id: isChallenger ? b.opponent_id : b.challenger_id, name: b.other_name, class_name: b.other_class, role: b.other_role },
     status: b.status,
+    mode: b.mode || 'async',
     mySubmitted: !!my,
     myCorrect: my ? my.correct : null,
     theirCorrect: b.status === 'completed' && their ? their.correct : null,

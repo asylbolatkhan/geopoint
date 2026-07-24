@@ -83,6 +83,7 @@ describe('summarize', () => {
     expect(summary).toHaveProperty('role');
     expect(summary).toHaveProperty('other');
     expect(summary).toHaveProperty('status');
+    expect(summary).toHaveProperty('mode');
     expect(summary).toHaveProperty('mySubmitted');
     expect(summary).toHaveProperty('myCorrect');
     expect(summary).toHaveProperty('theirCorrect');
@@ -90,5 +91,33 @@ describe('summarize', () => {
     expect(summary).toHaveProperty('total');
     expect(summary).toHaveProperty('createdAt');
     expect(summary).toHaveProperty('expiresAt');
+  });
+
+  it('passes mode through for a completed online row, results verbatim', () => {
+    const cResult = { correct: 9, durationMs: 12000 };
+    const oResult = { correct: 6, durationMs: 20000 };
+    const battle = createBattle({
+      mode: 'online',
+      status: 'completed',
+      winner_id: 100,
+      challenger_result: cResult,
+      opponent_result: oResult,
+    });
+    const cSummary = summarize(battle, 100);
+    const oSummary = summarize(battle, 200);
+    expect(cSummary.mode).toBe('online');
+    expect(oSummary.mode).toBe('online');
+    expect(cSummary.myCorrect).toBe(9);
+    expect(cSummary.theirCorrect).toBe(6);
+    expect(oSummary.myCorrect).toBe(6);
+    expect(oSummary.theirCorrect).toBe(9);
+  });
+
+  it('defaults mode to async for legacy rows where b.mode is undefined or null', () => {
+    const missing = createBattle(); // mode key absent altogether
+    expect(summarize(missing, 100).mode).toBe('async');
+
+    const nullMode = createBattle({ mode: null });
+    expect(summarize(nullMode, 100).mode).toBe('async');
   });
 });
