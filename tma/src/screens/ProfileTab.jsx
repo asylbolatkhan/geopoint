@@ -42,6 +42,9 @@ export default function ProfileTab({ lang, me }) {
   }
 
   const { monthPoints, totalPoints, battles, soloGames, accuracy } = profile;
+  const streak = profile.streak ?? { current: 0, best: 0 };
+  const achievements = profile.achievements ?? [];
+  const badgeEmoji = { firstWin: '🏆', wins10: '⚔️', solo50: '🎯', perfect: '💯', streak3: '🔥', streak7: '🚀', points500: '⭐' };
 
   return (
     <div className="flex flex-col gap-4">
@@ -55,6 +58,17 @@ export default function ProfileTab({ lang, me }) {
       <Card className="flex flex-col items-center gap-1 text-center">
         <div className="text-2xl font-bold">{totalPoints}</div>
         <div className="text-slate-400 text-sm">{t.totalPoints}</div>
+      </Card>
+
+      <Card className="flex flex-row items-center justify-between">
+        <div className="flex flex-col items-center gap-1">
+          <div className="text-2xl font-bold text-orange-400">🔥 {streak.current} {t.days}</div>
+          <div className="text-slate-400 text-xs">{t.streakTitle}</div>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <div className="text-2xl font-bold">{streak.best}</div>
+          <div className="text-slate-400 text-xs">{t.streakBest}</div>
+        </div>
       </Card>
 
       <div className="grid grid-cols-3 gap-3">
@@ -82,6 +96,23 @@ export default function ProfileTab({ lang, me }) {
           <div className="text-slate-400 text-xs">{t.accuracy}</div>
         </Card>
       </div>
+
+      {achievements.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold text-slate-300">{t.achievementsTitle}</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {achievements.map((a) => (
+              <Card
+                key={a.key}
+                className={`flex flex-row items-center gap-2 ${a.unlocked ? 'border-sky-500' : 'opacity-40'}`}
+              >
+                <div className="text-2xl">{a.unlocked ? badgeEmoji[a.key] : '🔒'}</div>
+                <div className="text-slate-300 text-xs">{t.badges?.[a.key] ?? a.key}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

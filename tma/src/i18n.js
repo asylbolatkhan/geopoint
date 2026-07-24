@@ -71,6 +71,12 @@ export const T = {
     monthPoints: 'Осы айдағы ұпай', totalPoints: 'Барлық ұпай',
     wins: 'Жеңіс', losses: 'Жеңіліс', draws: 'Тең',
     soloGames: 'Жаттығулар', accuracy: 'Дәлдік',
+    days: 'күн', streakTitle: 'Күн сериясы', streakBest: 'Рекорд',
+    achievementsTitle: 'Жетістіктер',
+    badges: {
+      firstWin: 'Алғашқы жеңіс', wins10: 'Жеңімпаз', solo50: 'Еңбекқор',
+      perfect: 'Мінсіз ойын', streak3: 'Қызу серия', streak7: 'Апталық серия', points500: 'Жарты мың',
+    },
     // Админ
     adminPending: 'Өтінімдер', adminStudents: 'Оқушылар', adminClasses: 'Сыныптар', adminStats: 'Статистика',
     approve: 'Қабылдау', reject: 'Қабылдамау', delete: 'Өшіру', save: 'Сақтау',
@@ -160,6 +166,12 @@ export const T = {
     monthPoints: 'Очки за этот месяц', totalPoints: 'Всего очков',
     wins: 'Победы', losses: 'Поражения', draws: 'Ничьи',
     soloGames: 'Тренировки', accuracy: 'Точность',
+    days: 'дней', streakTitle: 'Серия дней', streakBest: 'Рекорд',
+    achievementsTitle: 'Достижения',
+    badges: {
+      firstWin: 'Первая победа', wins10: 'Победитель', solo50: 'Труженик',
+      perfect: 'Идеальная игра', streak3: 'Горячая серия', streak7: 'Недельная серия', points500: 'Полтысячи',
+    },
     // Админ
     adminPending: 'Заявки', adminStudents: 'Ученики', adminClasses: 'Классы', adminStats: 'Статистика',
     approve: 'Принять', reject: 'Отклонить', delete: 'Удалить', save: 'Сохранить',
