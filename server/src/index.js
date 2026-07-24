@@ -11,6 +11,7 @@ import { leaderboardRouter } from './routes/leaderboard.js';
 import { adminRouter } from './routes/admin.js';
 import { profileRouter } from './routes/profile.js';
 import { startBot } from './bot.js';
+import { maybeAnnounceMonthly } from './announcements.js';
 
 const app = express();
 app.use(express.json());
@@ -42,6 +43,10 @@ const port = process.env.PORT || 3001;
 app.listen(port, () => console.log(`geo-server listening on :${port}`));
 startBot();
 
-setInterval(() => {
+function sweep() {
   expireDueBattles().catch((e) => console.error('expiry sweep failed:', e.message));
-}, 30 * 60 * 1000);
+  maybeAnnounceMonthly().catch((e) => console.error('monthly announcement failed:', e.message));
+}
+
+setInterval(sweep, 30 * 60 * 1000);
+sweep();
