@@ -11,15 +11,14 @@ export function useOnline() {
 const initialState = {
   wsStatus: 'closed',        // 'connecting' | 'open' | 'closed'
   onlineIds: [],
-  overlay: 'idle',           // 'idle'|'waiting'|'countdown'|'round'|'reveal'|'end'|'lost'
+  overlay: 'idle',           // 'idle'|'waiting'|'countdown'|'round'|'waitingEnd'|'end'|'lost'
   invite: null,              // {inviteId, expiresAt} — менің шығыс шақыруым
   incomingInvite: null,      // {inviteId, from, config, expiresAt}
-  match: null,               // {matchId, opponent, round, total, question, deadline, revealPayload, scores, opponentDisconnected, endPayload, opponentAnswered, countdownEndsAt}
+  match: null,               // {matchId, opponent, idx, total, question, deadline, revealPayload, scores, opponentProgress, opponentDisconnected, endPayload, countdownEndsAt}
   lastError: null,           // код (invite:error codes | 'declined' | 'expired' | 'persist_failed')
 };
 
-const MATCH_PHASES = ['countdown', 'round', 'reveal'];
-const SNAPSHOT_OVERLAY = { countdown: 'countdown', round_active: 'round', round_reveal: 'reveal' };
+const MATCH_PHASES = ['countdown', 'round', 'waitingEnd'];
 
 function handleMessage(state, msg) {
   switch (msg.type) {
@@ -89,96 +88,144 @@ function handleMessage(state, msg) {
         match: {
           matchId: msg.matchId,
           opponent: msg.opponent,
-          round: 0,
+          idx: 0,
           total: msg.totalRounds,
           question: null,
           deadline: null,
           revealPayload: null,
           scores: { you: 0, opponent: 0 },
+          opponentProgress: { answered: 0, score: 0, finished: false },
           opponentDisconnected: null,
           endPayload: null,
-          opponentAnswered: false,
           countdownEndsAt: msg.countdownEndsAt,
         },
       };
 
-    case 'round:start': {
+    case 'q:start': {
       if (!state.match) return state;
       return {
         ...state,
         overlay: 'round',
         match: {
           ...state.match,
-          round: msg.round,
+          idx: msg.idx,
           total: msg.total,
           question: msg.question,
           deadline: msg.deadline,
           revealPayload: null,
-          opponentAnswered: false,
         },
       };
     }
 
-    case 'round:opponent_answered': {
+    case 'q:result': {
       if (!state.match) return state;
-      return { ...state, match: { ...state.match, opponentAnswered: true } };
-    }
-
-    case 'round:result': {
-      if (!state.match) return state;
+      // overlay 'round'-та қалады — фидбэк сол экранда түспен көрсетіледі
       return {
         ...state,
-        overlay: 'reveal',
         match: {
           ...state.match,
           scores: msg.scores,
+          deadline: null,
           revealPayload: {
+            idx: msg.idx,
             correctOption: msg.correctOption,
             yourAnswer: msg.yourAnswer,
             yourCorrect: msg.yourCorrect,
-            opponentCorrect: msg.opponentCorrect,
-            nextRoundAt: msg.nextRoundAt,
+            nextAt: msg.nextAt,
           },
+        },
+      };
+    }
+
+    case 'opponent:progress': {
+      if (!state.match) return state;
+      return {
+        ...state,
+        match: {
+          ...state.match,
+          opponentProgress: {
+            answered: msg.answered,
+            score: msg.score,
+            finished: msg.finished,
+          },
+        },
+      };
+    }
+
+    case 'match:waiting': {
+      if (!state.match) return state;
+      return {
+        ...state,
+        overlay: 'waitingEnd',
+        match: {
+          ...state.match,
+          question: null,
+          deadline: null,
+          revealPayload: null,
+          opponentProgress: msg.opponentProgress,
+          // сервер null|graceEndsAt|true жібереді — сол күйінде сақтаймыз
+          opponentDisconnected: msg.opponentDisconnected ?? null,
         },
       };
     }
 
     case 'match:opponent_disconnected': {
       if (!state.match) return state;
-      return { ...state, match: { ...state.match, opponentDisconnected: msg.graceEndsAt } };
+      // ХАБАРДЫҢ КЕЛУІ = өшік; graceEndsAt null болуы мүмкін ('done' ойыншы) → true
+      return { ...state, match: { ...state.match, opponentDisconnected: msg.graceEndsAt ?? true } };
     }
 
     case 'match:opponent_reconnected': {
       if (!state.match) return state;
-      return {
-        ...state,
-        match: { ...state.match, opponentDisconnected: null, deadline: msg.deadline },
-      };
+      // ТЕК opponentDisconnected тазаланады — deadline-ға тиіспейміз (өз таймеріміз жүре береді)
+      return { ...state, match: { ...state.match, opponentDisconnected: null } };
     }
 
     case 'match:snapshot': {
-      const overlay = SNAPSHOT_OVERLAY[msg.phase];
-      if (!overlay) return state;
-      return {
-        ...state,
-        overlay,
-        invite: null,
-        match: {
-          // қорғаныс: ескі серверде snapshot matchId/total-сыз келсе — бұрынғы мәндер сақталады
-          matchId: msg.matchId ?? state.match?.matchId ?? null,
-          opponent: msg.opponent,
-          round: msg.round,
-          total: msg.total ?? state.match?.total ?? null,
-          question: msg.question ?? null,
-          deadline: msg.deadline ?? null,
-          revealPayload: msg.revealPayload ?? null,
-          scores: msg.scores,
-          opponentDisconnected: null,
-          endPayload: null,
-          opponentAnswered: false,
-          countdownEndsAt: msg.countdownEndsAt ?? null,
-        },
-      };
+      if (msg.phase === 'countdown') {
+        return {
+          ...state,
+          overlay: 'countdown',
+          invite: null,
+          match: {
+            matchId: msg.matchId,
+            opponent: msg.opponent,
+            idx: 0,
+            total: msg.total,
+            question: null,
+            deadline: null,
+            revealPayload: null,
+            scores: msg.scores,
+            opponentProgress: { answered: 0, score: 0, finished: false },
+            opponentDisconnected: null,
+            endPayload: null,
+            countdownEndsAt: msg.countdownEndsAt,
+          },
+        };
+      }
+      if (msg.phase === 'racing') {
+        return {
+          ...state,
+          overlay: msg.sub === 'done' ? 'waitingEnd' : 'round',
+          invite: null,
+          match: {
+            matchId: msg.matchId,
+            opponent: msg.opponent,
+            idx: msg.idx,
+            total: msg.total,
+            question: msg.question ?? null,
+            deadline: msg.deadline ?? null,
+            revealPayload: msg.feedback ? { idx: msg.idx, ...msg.feedback } : null,
+            scores: msg.scores,
+            opponentProgress: msg.opponentProgress,
+            // сервер null|graceEndsAt|true жібереді — сол күйінде сақтаймыз
+            opponentDisconnected: msg.opponentDisconnected ?? null,
+            endPayload: null,
+            countdownEndsAt: null,
+          },
+        };
+      }
+      return state;
     }
 
     case 'match:end':
@@ -294,8 +341,8 @@ export default function OnlineProvider({ me, children }) {
     dispatch({ type: 'DECLINE_INVITE' });
   }, []);
 
-  const sendAnswer = useCallback((matchId, round, optionIndex) => {
-    socket.send({ type: 'round:answer', matchId, round, optionIndex });
+  const sendAnswer = useCallback((matchId, idx, optionIndex) => {
+    socket.send({ type: 'q:answer', matchId, idx, optionIndex });
   }, []);
 
   const leaveMatch = useCallback(() => {

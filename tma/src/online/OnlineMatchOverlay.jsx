@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useOnline } from './OnlineProvider';
 import { useT } from '../i18n';
 import { haptic } from '../telegram';
+import H2HLine from '../components/H2HLine';
 import OnlineRound from './OnlineRound';
 
 const OUTCOME_EMOJI = { win: '🏆', loss: '😔', draw: '🤝' };
-const MATCH_PHASES = ['countdown', 'round', 'reveal'];
+const MATCH_PHASES = ['countdown', 'round', 'waitingEnd'];
 
 // Толық экранды матч-оверлей: overlay !== 'idle' кезде App деңгейінде көрсетіледі.
 export default function OnlineMatchOverlay({ lang }) {
@@ -57,8 +58,37 @@ export default function OnlineMatchOverlay({ lang }) {
         <p className="text-7xl font-black text-sky-400">{n}</p>
       </div>
     );
-  } else if (overlay === 'round' || overlay === 'reveal') {
+  } else if (overlay === 'round') {
     body = <OnlineRound lang={lang} />;
+  } else if (overlay === 'waitingEnd') {
+    const opp = match?.opponentProgress ?? { answered: 0, score: 0, finished: false };
+    const total = match?.total ?? 0;
+    const pct = total > 0 ? Math.max(0, Math.min(100, (opp.answered / total) * 100)) : 0;
+    const scores = match?.scores ?? { you: 0, opponent: 0 };
+    body = (
+      <div className="flex flex-col items-center justify-center gap-4 min-h-screen p-6 text-center">
+        <p className="text-5xl">✅</p>
+        <p className="text-xl font-bold">{t.onlineYouFinished}</p>
+        <p className="text-4xl font-black">{scores.you} : {scores.opponent}</p>
+        <div className="w-full max-w-xs flex flex-col gap-1">
+          <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-sky-500"
+              style={{ width: `${pct}%`, transition: 'width 250ms linear' }}
+            />
+          </div>
+          <span className="text-slate-500 text-xs">
+            {t.onlineOpponentProgress}: {opp.answered}/{total}
+          </span>
+        </div>
+        <p className="text-slate-400 text-sm">{t.onlineWaitingFinish}</p>
+        {match?.opponentDisconnected != null && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 text-sm text-center p-2">
+            {t.onlineOpponentReconnecting}
+          </div>
+        )}
+      </div>
+    );
   } else if (overlay === 'end') {
     const end = match?.endPayload;
     const scores = end?.scores ?? match?.scores ?? { you: 0, opponent: 0 };
@@ -72,6 +102,7 @@ export default function OnlineMatchOverlay({ lang }) {
         {end?.yourPoints != null && (
           <p className="text-green-400 font-semibold">+{end.yourPoints} {t.points}</p>
         )}
+        {end && match?.opponent?.id && <H2HLine opponentId={match.opponent.id} lang={lang} />}
         <button
           onClick={() => { haptic('light'); closeOverlay(); }}
           className="mt-2 px-10 py-3 rounded-xl bg-sky-500 font-semibold active:bg-sky-600"

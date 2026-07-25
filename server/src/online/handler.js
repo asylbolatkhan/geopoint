@@ -59,8 +59,8 @@ function dispatch(match, effects) {
 }
 
 // setTimer — replace-and-clear: сол атпен бұрын қойылған setTimeout алдымен
-// өшіріледі (ерте жауапталған раундтың ескі roundDeadline-і келесі раундты
-// қателесіп жаппауы үшін).
+// өшіріледі (ерте жауапталған сұрақтың ескі q:<id> таймері келесі сұрақты
+// қателесіп жаппауы үшін — таймер аттары ойыншыға сайын қайта қолданылады).
 function setMatchTimer(match, name, at) {
   const existing = match.timers.get(name);
   if (existing) clearTimeout(existing);
@@ -283,7 +283,6 @@ async function handleInviteAccept(student, msg) {
       playerMeta,
       questions,
       config: invite.config,
-      matchSeed: randomInt(SEED_MAX),
       now: Date.now(),
     });
     match = { state, timers: new Map(), queue: Promise.resolve() };
@@ -307,7 +306,7 @@ async function handleInviteAccept(student, msg) {
   }
 
   // Await терезесінде біреуі үзіліп кетсе — движок оны connected:true деп
-  // бастамауы үшін бірден disconnect ретінде өңдейміз (pause + grace).
+  // бастамауы үшін бірден disconnect ретінде өңдейміз (freeze + grace).
   for (const id of [challengerId, student.id]) {
     if (!registry.isOnline(id)) {
       const { effects } = applyDisconnect(match.state, id, Date.now());
@@ -339,12 +338,12 @@ function matchForMember(studentId, matchId) {
   return registry.matches.get(matchId) || null;
 }
 
-function handleRoundAnswer(student, msg) {
-  if (!Number.isInteger(msg.round)) return;
+function handleQAnswer(student, msg) {
+  if (!Number.isInteger(msg.idx)) return;
   if (!Number.isInteger(msg.optionIndex) || msg.optionIndex < 0 || msg.optionIndex > 3) return;
   const match = matchForMember(student.id, msg.matchId);
   if (!match) return; // бөтен/жоқ матч — үнсіз еленбейді
-  const { effects } = applyAnswer(match.state, student.id, msg.round, msg.optionIndex, Date.now());
+  const { effects } = applyAnswer(match.state, student.id, msg.idx, msg.optionIndex, Date.now());
   dispatch(match, effects);
 }
 
@@ -395,8 +394,8 @@ function onMessage(student, ws, msg) {
       return handleInviteCancel(student, msg);
     case 'invite:decline':
       return handleInviteDecline(student, msg);
-    case 'round:answer':
-      return handleRoundAnswer(student, msg);
+    case 'q:answer':
+      return handleQAnswer(student, msg);
     case 'match:leave':
       return handleMatchLeave(student, msg);
     case 'match:state':

@@ -77,11 +77,6 @@ export default function QuizPlay({ questions, questionSeconds, lang, onFinish, c
           ? <FlagImg iso={q.display.value} size="lg" />
           : <p className="text-2xl font-bold text-center text-slate-100">{q.display.value}</p>}
       </div>
-      {feedback && (
-        <p className={`text-center font-bold ${feedback.correct ? 'text-green-400' : 'text-red-400'}`}>
-          {feedback.correct ? t.feedbackCorrect : t.feedbackWrong}
-        </p>
-      )}
       <div className={isFlagOptions ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3'}>
         {q.options.map((opt, i) => {
           let cls = 'bg-slate-800 border-slate-700 active:bg-slate-700';
@@ -97,7 +92,7 @@ export default function QuizPlay({ questions, questionSeconds, lang, onFinish, c
               key={i}
               onClick={() => { haptic(); advance(i); }}
               disabled={picked !== null}
-              className={`rounded-xl border p-3 text-slate-100 font-medium transition-colors ${cls}`}
+              className={`rounded-xl border p-3 text-slate-100 font-medium transition-colors ${cls} ${isFlagOptions ? 'flex items-center justify-center' : ''}`}
             >
               {isFlagOptions ? <FlagImg iso={opt} size="md" /> : opt}
             </button>

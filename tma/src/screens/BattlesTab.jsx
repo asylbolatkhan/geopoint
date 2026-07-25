@@ -4,6 +4,7 @@ import { haptic } from '../telegram';
 import { useT } from '../i18n';
 import { useOnline } from '../online/OnlineProvider';
 import Card from '../components/Card';
+import H2HLine from '../components/H2HLine';
 import QuizPlay from '../components/QuizPlay';
 
 const CONTINENT_KEYS = ['europe', 'asia', 'northamerica', 'southamerica', 'africa', 'oceania', 'all'];
@@ -448,6 +449,7 @@ export default function BattlesTab({ lang, me }) {
               {finished.theirCorrect != null ? `${score(finished.myCorrect)}:${score(finished.theirCorrect)}` : `${score(finished.myCorrect)}/${finished.total}`}
             </div>
           )}
+          {finished.other?.id && <H2HLine opponentId={finished.other.id} lang={lang} />}
         </Card>
         {canRematch && (
           <button type="button" onClick={rematch} className="w-full bg-sky-500 rounded-xl py-3 font-bold text-white">
@@ -544,9 +546,12 @@ export default function BattlesTab({ lang, me }) {
       <div className="flex flex-col gap-5">
         <BackBtn onClick={() => setPhase('pickOpponent')} />
         <h2 className="text-lg font-bold">{t.battleSettings}</h2>
-        <Card className="flex items-center gap-2">
-          <span className="font-medium">⚔️ {opponent.name}</span>
-          <span className="text-slate-400 text-sm">· {opponent.class_name ?? (opponent.role === 'teacher' ? t.teacherBadge : '')}</span>
+        <Card className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">⚔️ {opponent.name}</span>
+            <span className="text-slate-400 text-sm">· {opponent.class_name ?? (opponent.role === 'teacher' ? t.teacherBadge : '')}</span>
+          </div>
+          <H2HLine opponentId={opponent.id} lang={lang} />
         </Card>
 
         <div className="flex flex-col gap-2">
