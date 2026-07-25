@@ -302,6 +302,7 @@ async function handleInviteAccept(student, msg) {
     if (registry.matchByStudent.get(student.id) === matchId) {
       registry.matchByStudent.delete(student.id);
     }
+    sendTo(challengerId, { type: 'invite:expired', inviteId: invite.id });
     return sendInviteError(student.id, 'not_found');
   }
 

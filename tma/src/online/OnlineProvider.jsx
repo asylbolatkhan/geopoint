@@ -246,7 +246,12 @@ export default function OnlineProvider({ me, children }) {
     if (!token) return undefined;
     socket.connect(token, {
       onMessage: (msg) => dispatch({ type: 'MESSAGE', msg }),
-      onStatus: (s) => dispatch({ type: 'WS_STATUS', status: s }),
+      onStatus: (s) => {
+        dispatch({ type: 'WS_STATUS', status: s });
+        // сокет ашылған сайын күйді қайта сұраймыз — сервер рестартынан кейін
+        // алдыңғы матч күйінде қатып қалмау үшін (idempotent: snapshot/none)
+        if (s === 'open') socket.send({ type: 'match:state' });
+      },
     });
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return;

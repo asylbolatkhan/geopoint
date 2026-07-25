@@ -176,8 +176,8 @@ export default function BattlesTab({ lang, me }) {
 
   // Онлайн-режимде қарсылас таңдау экранына кірген сайын presence жаңартылады
   useEffect(() => {
-    if (phase === 'pickOpponent' && battleMode === 'online') refreshPresence();
-  }, [phase, battleMode, refreshPresence]);
+    if (phase === 'pickOpponent' && battleMode === 'online' && wsStatus === 'open') refreshPresence();
+  }, [phase, battleMode, wsStatus, refreshPresence]);
 
   // Таб жабылғанда ескі invite-қате келесі ашылуға ілеспейді
   useEffect(() => () => clearError(), [clearError]);
@@ -265,6 +265,7 @@ export default function BattlesTab({ lang, me }) {
       questionTypes,
       count,
     });
+    setGenericError(false);
     setBattleMode('async');
     setPhase('list');
   };
