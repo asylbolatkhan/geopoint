@@ -61,6 +61,7 @@ export const T = {
     teachersGroup: 'Мұғалімдер',
     notEligibleTeacher: 'Мұғалімге батл тастау үшін өткен айдың мектеп рейтингінде топ-3-ке кіру керек 🔒',
     rematch: 'Реванш ⚔️',
+    h2hTitle: 'Жеке кездесулер', h2hLegend: 'жеңіс–тең–жеңіліс',
     // Online battle
     onlineLabel: 'Онлайн',
     onlineInviteSent: 'Шақыру жіберілді',
@@ -185,6 +186,7 @@ export const T = {
     teachersGroup: 'Учителя',
     notEligibleTeacher: 'Чтобы бросить баттл учителю, нужно войти в топ-3 школы за прошлый месяц 🔒',
     rematch: 'Реванш ⚔️',
+    h2hTitle: 'Личные встречи', h2hLegend: 'победы–ничьи–поражения',
     // Online battle
     onlineLabel: 'Онлайн',
     onlineInviteSent: 'Приглашение отправлено',

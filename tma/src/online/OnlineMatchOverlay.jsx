@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useOnline } from './OnlineProvider';
 import { useT } from '../i18n';
 import { haptic } from '../telegram';
+import H2HLine from '../components/H2HLine';
 import OnlineRound from './OnlineRound';
 
 const OUTCOME_EMOJI = { win: '🏆', loss: '😔', draw: '🤝' };
@@ -101,6 +102,7 @@ export default function OnlineMatchOverlay({ lang }) {
         {end?.yourPoints != null && (
           <p className="text-green-400 font-semibold">+{end.yourPoints} {t.points}</p>
         )}
+        {end && match?.opponent?.id && <H2HLine opponentId={match.opponent.id} lang={lang} />}
         <button
           onClick={() => { haptic('light'); closeOverlay(); }}
           className="mt-2 px-10 py-3 rounded-xl bg-sky-500 font-semibold active:bg-sky-600"
