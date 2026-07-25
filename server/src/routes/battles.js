@@ -171,6 +171,24 @@ battlesRouter.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+battlesRouter.get('/h2h/:opponentId', async (req, res, next) => {
+  try {
+    const opponentIdNum = Number(req.params.opponentId);
+    if (!isDbId(opponentIdNum)) return res.status(400).json({ error: 'bad_opponent' });
+    const { rows } = await query(
+      `SELECT COUNT(*) FILTER (WHERE winner_id = $1)::int AS wins,
+              COUNT(*) FILTER (WHERE winner_id = $2)::int AS losses,
+              COUNT(*) FILTER (WHERE winner_id IS NULL)::int AS draws
+       FROM battles
+       WHERE status = 'completed'
+         AND ((challenger_id = $1 AND opponent_id = $2) OR (challenger_id = $2 AND opponent_id = $1))`,
+      [req.student.id, opponentIdNum]
+    );
+    const { wins, losses, draws } = rows[0];
+    res.json({ wins, losses, draws });
+  } catch (e) { next(e); }
+});
+
 battlesRouter.get('/:id', async (req, res, next) => {
   try {
     const battleId = Number(req.params.id);
