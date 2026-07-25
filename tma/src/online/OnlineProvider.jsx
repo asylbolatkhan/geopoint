@@ -125,6 +125,7 @@ function handleMessage(state, msg) {
         match: {
           ...state.match,
           scores: msg.scores,
+          deadline: null,
           revealPayload: {
             idx: msg.idx,
             correctOption: msg.correctOption,

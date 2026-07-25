@@ -6,33 +6,32 @@ import FlagImg from '../components/FlagImg';
 
 const ROUND_MS = 15000;
 
-// Бір раунд: сұрақ картасы + нұсқалар (QuizPlay презентациялық маркупы), серверлік таймер.
+// Бір раунд: сұрақ картасы + нұсқалар (QuizPlay презентациялық маркупы), өз-қарқынды таймер.
 export default function OnlineRound({ lang }) {
   const { match, overlay, sendAnswer, leaveMatch, serverNowMs } = useOnline();
   const t = useT(lang);
   const [picked, setPicked] = useState(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const [, setTick] = useState(0);
-  const remainingRef = useRef(ROUND_MS); // disconnect кезінде көрсетілетін «қатқан» мән
+  const remainingRef = useRef(ROUND_MS); // reveal кезінде көрсетілетін «қатқан» мән
 
-  const round = match?.round ?? 0;
-  const reveal = overlay === 'reveal' ? match?.revealPayload : null;
-  const paused = match?.opponentDisconnected != null;
+  const reveal = match?.revealPayload && match.revealPayload.idx === match?.idx ? match.revealPayload : null;
 
   // Жаңа раунд → локал таңдау тазаланады
   useEffect(() => {
     setPicked(null);
     setLeaveConfirm(false);
-  }, [round]);
+  }, [match?.idx]);
 
-  // Таймер tick — тек белсенді раундта және pause жоқта
+  // Таймер tick — тек белсенді раундта, reveal жоқта және deadline барда
+  // (қарсыластың байланысы — тек баннер, менің таймерім оған тәуелсіз жүреді)
   useEffect(() => {
-    if (overlay !== 'round' || paused) return undefined;
+    if (overlay !== 'round' || reveal || match?.deadline == null) return undefined;
     const id = setInterval(() => setTick((n) => n + 1), 250);
     return () => clearInterval(id);
-  }, [overlay, paused]);
+  }, [overlay, reveal, match?.deadline]);
 
-  // Reveal келгенде бір рет haptic
+  // Reveal келгенде бір рет haptic (revealPayload identity бойынша)
   useEffect(() => {
     if (!reveal) return;
     haptic(reveal.yourCorrect ? 'light' : 'heavy');
@@ -44,30 +43,30 @@ export default function OnlineRound({ lang }) {
   const isFlagOptions = q.type === 'country-flag' || q.type === 'capital-flag';
 
   let remainingMs;
-  if (paused || overlay === 'reveal') {
-    remainingMs = remainingRef.current; // сервер паузада / reveal — таймер қатады
+  if (reveal || match.deadline == null) {
+    remainingMs = remainingRef.current; // reveal кезінде таймер қатады
   } else {
-    remainingMs = Math.max(0, (match.deadline ?? 0) - serverNowMs());
+    remainingMs = Math.max(0, match.deadline - serverNowMs());
     remainingRef.current = remainingMs;
   }
   const secondsLeft = Math.max(0, Math.ceil(remainingMs / 1000));
   const pct = Math.max(0, Math.min(100, (remainingMs / ROUND_MS) * 100));
   const urgent = remainingMs < 5000;
 
-  const locked = picked !== null || overlay === 'reveal';
+  const locked = picked !== null || reveal != null;
 
   const choose = (i) => {
     if (locked || overlay !== 'round') return; // құлыптан кейінгі таптар еленбейді
     setPicked(i);
     haptic('light');
-    sendAnswer(match.matchId, match.round, i);
+    sendAnswer(match.matchId, match.idx, i);
   };
 
   // window.confirm iOS Telegram WebView-те жұмыс істемейді → инлайн екі-тап confirm
   return (
     <div className="flex flex-col gap-4 p-4 max-w-md mx-auto w-full">
       <div className="flex items-center justify-between text-slate-400 text-sm">
-        <span>{t.question} {round + 1}/{match.total}</span>
+        <span>{t.question} {match.idx + 1}/{match.total}</span>
         <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 font-semibold">
           {t.youLabel} {match.scores.you} : {match.scores.opponent}
         </span>
@@ -102,8 +101,8 @@ export default function OnlineRound({ lang }) {
       )}
 
       <div className="flex items-center justify-between text-xs">
-        <span className={`px-2 py-0.5 rounded-full border ${match.opponentAnswered ? 'border-green-500/50 text-green-400 bg-green-500/10' : 'border-slate-700 text-slate-400 bg-slate-800'}`}>
-          {match.opponentAnswered ? t.onlineOpponentAnswered : t.onlineOpponentThinking}
+        <span className="text-slate-500">
+          {t.onlineOpponentProgress}: {match.opponentProgress?.answered ?? 0}/{match.total}
         </span>
         <span className={urgent ? 'text-red-400 font-bold' : 'text-slate-400'}>⏱ {secondsLeft}</span>
       </div>
@@ -115,7 +114,7 @@ export default function OnlineRound({ lang }) {
         />
       </div>
 
-      {paused && (
+      {match.opponentDisconnected != null && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 text-sm text-center p-2">
           {t.onlineOpponentReconnecting}
         </div>
@@ -142,7 +141,7 @@ export default function OnlineRound({ lang }) {
               key={i}
               onClick={() => choose(i)}
               disabled={locked}
-              className={`rounded-xl border p-3 text-slate-100 font-medium transition-colors ${cls}`}
+              className={`rounded-xl border p-3 text-slate-100 font-medium transition-colors ${cls} ${isFlagOptions ? 'flex items-center justify-center' : ''}`}
             >
               {isFlagOptions ? <FlagImg iso={opt} size="md" /> : opt}
             </button>
