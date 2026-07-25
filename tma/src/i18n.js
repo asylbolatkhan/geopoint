@@ -40,7 +40,6 @@ export const T = {
     dailyCapNote: 'Жаттығудан күніне ең көп 30 ұпай жиналады',
     review: 'Қателерді қарау', playAgain: 'Тағы ойнау', done: 'Дайын',
     yourAnswer: 'Сенің жауабың', rightAnswer: 'Дұрыс жауап', skipped: 'Жауапсыз',
-    feedbackCorrect: 'Дұрыс! ✅', feedbackWrong: 'Қате ❌',
     // Батлдар
     newBattle: 'Батл тастау ⚔️',
     onlineBattle: 'Онлайн батл',
@@ -165,7 +164,6 @@ export const T = {
     dailyCapNote: 'За тренировку в день начисляется не больше 30 очков',
     review: 'Разбор ошибок', playAgain: 'Играть снова', done: 'Готово',
     yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', skipped: 'Без ответа',
-    feedbackCorrect: 'Верно! ✅', feedbackWrong: 'Неверно ❌',
     // Баттлы
     newBattle: 'Бросить баттл ⚔️',
     onlineBattle: 'Онлайн баттл',
