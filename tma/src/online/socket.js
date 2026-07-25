@@ -68,6 +68,7 @@ async function open() {
     const res = await fetch('/api/online/ticket', {
       method: 'POST',
       headers: { authorization: token },
+      signal: AbortSignal.timeout(10000),
     });
     if (res.ok) {
       const data = await res.json();
