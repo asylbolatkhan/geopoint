@@ -19,7 +19,7 @@ battlesRouter.use(requireApproved);
 const challengerSeed = (battleId) => battleId * 2;
 const opponentSeed = (battleId) => battleId * 2 + 1;
 
-async function applyWhoEvents(client, events, battle) {
+export async function applyWhoEvents(client, events, battle) {
   for (const e of events) {
     const studentId = e.who === 'challenger' ? battle.challenger_id : battle.opponent_id;
     await awardPoints(studentId, e.amount, e.reason, battle.id, client);
@@ -29,6 +29,18 @@ async function applyWhoEvents(client, events, battle) {
 async function studentById(id) {
   const { rows } = await query('SELECT * FROM students WHERE id = $1', [id]);
   return rows[0] || null;
+}
+
+// Күндік лимит: осы жұп (challenger → opponent) арасындағы бүгінгі (Алматы
+// күні) батлдар саны — режимге қарамастан (async + online қосылып саналады).
+export async function countBattlesTodayBetween(aId, bId) {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS n FROM battles
+     WHERE challenger_id = $1 AND opponent_id = $2
+       AND (created_at AT TIME ZONE $3)::date = (now() AT TIME ZONE $3)::date`,
+    [aId, bId, TIMEZONE]
+  );
+  return rows[0].n;
 }
 
 export async function expireDueBattles() {
@@ -82,6 +94,7 @@ export function summarize(b, myId) {
     role: isChallenger ? 'challenger' : 'opponent',
     other: { id: isChallenger ? b.opponent_id : b.challenger_id, name: b.other_name, class_name: b.other_class, role: b.other_role },
     status: b.status,
+    mode: b.mode || 'async',
     mySubmitted: !!my,
     myCorrect: my ? my.correct : null,
     theirCorrect: b.status === 'completed' && their ? their.correct : null,
@@ -127,13 +140,7 @@ battlesRouter.post('/', async (req, res, next) => {
     if (verdict === 'not_eligible_teacher_battle') {
       return res.status(403).json({ error: 'not_eligible_teacher_battle' });
     }
-    const { rows: cntRows } = await query(
-      `SELECT COUNT(*)::int AS n FROM battles
-       WHERE challenger_id = $1 AND opponent_id = $2
-         AND (created_at AT TIME ZONE $3)::date = (now() AT TIME ZONE $3)::date`,
-      [req.student.id, opponent.id, TIMEZONE]
-    );
-    if (cntRows[0].n >= BATTLE.dailyPerOpponent) {
+    if ((await countBattlesTodayBetween(req.student.id, opponent.id)) >= BATTLE.dailyPerOpponent) {
       return res.status(429).json({ error: 'daily_limit' });
     }
     const questions = generateQuestions(config);

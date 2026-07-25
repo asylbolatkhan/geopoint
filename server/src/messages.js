@@ -33,6 +33,7 @@ export const M = {
     battleDeclined: (name) => `❌ ${name} батлыңды қабылдамады. Саған +10 ұпай жазылды.`,
     battleExpired: (name) => `⏰ ${name} батлыңа 48 сағатта жауап бермеді. Саған +10 ұпай жазылды.`,
     battleExpiredIdle: (name) => `⏰ ${name} тастаған батлға жауап бермедің: −10 ұпай.`,
+    onlineInvite: (name) => `⚡ ${name} сені онлайн жекпе-жекке шақырды! 90 секунд ішінде қосыл!`,
     monthlyTop: (key, rows) => {
       const lines = rows.map((r, i) => topLine(MEDALS[i], r, 'ұпай')).join('\n');
       return `🏆 ${monthLabel(key, 'kk')} айының топ-3:\n\n${lines}\n\nЖаңа ай — жаңа жарыс! 💪`;
@@ -52,6 +53,7 @@ export const M = {
     battleDeclined: (name) => `❌ ${name} отклонил(а) твой баттл. Тебе начислено +10 очков.`,
     battleExpired: (name) => `⏰ ${name} не ответил(а) на баттл за 48 часов. Тебе +10 очков.`,
     battleExpiredIdle: (name) => `⏰ Ты не ответил(а) на баттл от ${name}: −10 очков.`,
+    onlineInvite: (name) => `⚡ ${name} вызывает тебя на онлайн-батл! Зайди в приложение в течение 90 секунд!`,
     monthlyTop: (key, rows) => {
       const lines = rows.map((r, i) => topLine(MEDALS[i], r, 'очков')).join('\n');
       return `🏆 Топ-3 месяца — ${monthLabel(key, 'ru')}:\n\n${lines}\n\nНовый месяц — новая гонка! 💪`;

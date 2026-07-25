@@ -11,6 +11,9 @@ import BattlesTab from './screens/BattlesTab';
 import RatingTab from './screens/RatingTab';
 import ProfileTab from './screens/ProfileTab';
 import AdminTab from './screens/AdminTab';
+import OnlineProvider from './online/OnlineProvider';
+import InviteToast from './online/InviteToast';
+import OnlineMatchOverlay from './online/OnlineMatchOverlay';
 
 const notInTelegram = getAuthHeader() === '';
 
@@ -71,15 +74,19 @@ export default function App() {
   const active = activeTab ?? defaultTab;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100">
-      <div className="max-w-md mx-auto p-4 pb-20">
-        {active === 'play' && <PlayTab lang={lang} />}
-        {active === 'battles' && <BattlesTab lang={lang} me={me} />}
-        {active === 'rating' && <RatingTab lang={lang} me={me} />}
-        {active === 'profile' && <ProfileTab lang={lang} me={me} />}
-        {active === 'admin' && <AdminTab lang={lang} />}
+    <OnlineProvider me={me}>
+      <InviteToast lang={lang} />
+      <OnlineMatchOverlay lang={lang} />
+      <div className="min-h-screen bg-slate-900 text-slate-100">
+        <div className="max-w-md mx-auto p-4 pb-20">
+          {active === 'play' && <PlayTab lang={lang} />}
+          {active === 'battles' && <BattlesTab lang={lang} me={me} />}
+          {active === 'rating' && <RatingTab lang={lang} me={me} />}
+          {active === 'profile' && <ProfileTab lang={lang} me={me} />}
+          {active === 'admin' && <AdminTab lang={lang} />}
+        </div>
+        <TabBar tabs={tabs} active={active} onChange={setActiveTab} />
       </div>
-      <TabBar tabs={tabs} active={active} onChange={setActiveTab} />
-    </div>
+    </OnlineProvider>
   );
 }

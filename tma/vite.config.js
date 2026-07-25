@@ -10,6 +10,9 @@ export default defineConfig({
   resolve: { alias: { '@shared': path.resolve(root, '../shared') } },
   server: {
     fs: { allow: [path.resolve(root, '..')] },
-    proxy: { '/api': 'http://localhost:3001' },
+    proxy: {
+      '/api': 'http://localhost:3001',
+      '/ws': { target: 'ws://localhost:3001', ws: true },
+    },
   },
 });
