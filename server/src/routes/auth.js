@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { query } from '../db.js';
+import { tickets } from '../online/registry.js';
 import { requireApproved } from '../authMiddleware.js';
 import { notifyAdmins } from '../bot.js';
 import { M } from '../messages.js';
@@ -63,6 +65,22 @@ authRouter.post('/register', async (req, res, next) => {
     notifyAdmins((adminLang) => M[adminLang].newPending(name.trim(), cls.rows[0].name));
     res.json({ student: rows[0] });
   } catch (e) { next(e); }
+});
+
+// WS қосылуға бір реттік билет. Bearer токен URL-ға шықпауы үшін: клиент осы
+// endpoint-тен билет алады да, /ws?ticket=... арқылы қосылады. Билет 30 секунд
+// жарамды және бір-ақ рет қолданылады (upgrade кезінде бірден өшіріледі).
+const WS_TICKET_TTL_MS = 30000;
+
+authRouter.post('/online/ticket', requireApproved, (req, res) => {
+  const now = Date.now();
+  // Ленивая тазалау: мерзімі өткен билеттерді өшіреміз — map әрқашан кішкентай.
+  for (const [t, v] of tickets) {
+    if (v.expiresAt < now) tickets.delete(t);
+  }
+  const ticket = randomUUID();
+  tickets.set(ticket, { studentId: req.student.id, expiresAt: now + WS_TICKET_TTL_MS });
+  res.json({ ticket });
 });
 
 authRouter.get('/students', requireApproved, async (req, res, next) => {

@@ -1,7 +1,7 @@
 // WS транспорт қабаты: аутентификация, heartbeat, hello/ping/presence.
 // Ойын логикасы жоқ — Task 4 handler.js осы модульдің hook-тарын толтырады.
 import { WebSocketServer } from 'ws';
-import { resolveStudentFromAuthToken } from '../authMiddleware.js';
+import { query } from '../db.js';
 import * as registry from './registry.js';
 
 const HEARTBEAT_MS = 25000;
@@ -33,13 +33,13 @@ export function attachWsServer(server, hooks = {}) {
     // 'error' оқиғасы бүкіл процесті құлатады. Сонымен қатар төмендегі 401 write
     // жойылған сокетке жазып қалмас үшін де қорғаныс.
     socket.on('error', () => {});
-    // ЕСКЕРТУ: req.url ЕШҚАШАН логталмайды — құрамында auth токені бар.
+    // ЕСКЕРТУ: req.url ЕШҚАШАН логталмайды — құрамында бір реттік билет бар.
     let pathname = '';
-    let token = '';
+    let ticket = '';
     try {
       const url = new URL(req.url, 'http://internal');
       pathname = url.pathname;
-      token = decodeURIComponent(url.searchParams.get('auth') || '');
+      ticket = url.searchParams.get('ticket') || '';
     } catch {
       socket.destroy();
       return;
@@ -49,10 +49,21 @@ export function attachWsServer(server, hooks = {}) {
       return;
     }
 
+    // Билет бір реттік: жарамды/жарамсыз болса да бірден өшіріледі — replay
+    // мүмкін емес. Билетті /api/online/ticket (requireApproved) береді.
+    const entry = registry.tickets.get(ticket);
+    if (ticket) registry.tickets.delete(ticket);
+    if (!entry || entry.expiresAt < Date.now()) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    // Студентті жаңадан жүктейміз: билет берілгеннен кейін статус өзгеруі мүмкін.
     let student = null;
     try {
-      const resolved = token ? await resolveStudentFromAuthToken(token) : null;
-      student = resolved?.student || null;
+      const { rows } = await query('SELECT * FROM students WHERE id = $1', [entry.studentId]);
+      student = rows[0] || null;
     } catch {
       student = null;
     }

@@ -14,6 +14,7 @@ let pingTimer = null;
 let pongTimer = null;
 let serverOffset = 0;     // serverNow - Date.now()
 let manualClose = false;
+let opening = false;      // билет fetch-і жүріп жатыр — қатар екінші open() болмасын
 
 function status(s) {
   if (onStatus) onStatus(s);
@@ -54,14 +55,43 @@ function scheduleReconnect() {
   }, delay);
 }
 
-function open() {
+async function open() {
+  if (manualClose || !token) return;
+  if (opening) return; // билет сұранысы жүріп жатыр — сол әрекет аяқталады
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  opening = true;
+  status('connecting');
+
+  // Bearer токен URL-ға шықпауы үшін алдымен бір реттік билет аламыз.
+  let ticket = null;
+  try {
+    const res = await fetch('/api/online/ticket', {
+      method: 'POST',
+      headers: { authorization: token },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data.ticket === 'string') ticket = data.ticket;
+    }
+  } catch {
+    // ticket = null — төменде reconnect жолына түседі
+  }
+  opening = false;
+
+  // await-тан кейін күйді қайта тексереміз: fetch кезінде disconnect() немесе
+  // басқа жолмен ашылған сокет болуы мүмкін — zombie сокет жасамаймыз.
   if (manualClose || !token) return;
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-  status('connecting');
+  if (!ticket) {
+    status('closed');
+    scheduleReconnect();
+    return;
+  }
+
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   let sock;
   try {
-    sock = new WebSocket(`${proto}://${location.host}/ws?auth=${encodeURIComponent(token)}`);
+    sock = new WebSocket(`${proto}://${location.host}/ws?ticket=${encodeURIComponent(ticket)}`);
   } catch {
     scheduleReconnect();
     return;

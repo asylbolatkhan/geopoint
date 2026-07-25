@@ -4,6 +4,11 @@
 // studentId -> ws (ағымдағы белсенді сокет)
 export const sockets = new Map();
 
+// WS қосылуға арналған бір реттік, қысқа мерзімді билеттер:
+// ticket -> {studentId, expiresAt}. Билет /api/online/ticket арқылы беріледі,
+// upgrade кезінде бірден өшіріледі (қайта қолдануға болмайды).
+export const tickets = new Map();
+
 // Task 4: inviteId -> invite, matchId -> {state, timers}, studentId -> matchId
 export const invites = new Map();
 export const matches = new Map();
