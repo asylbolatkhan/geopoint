@@ -12,6 +12,8 @@ export const T = {
     roleLabel: 'Кім боп тіркелесің?',
     roleStudent: 'Оқушы',
     roleTeacher: 'Мен — мұғалім',
+    rolePlayer: 'Жеке ойыншы',
+    yourSchool: 'Мектебің',
     yourClass: 'Сыныбың',
     language: 'Тіл',
     send: 'Жіберу',
@@ -19,6 +21,7 @@ export const T = {
     // Күту
     pendingTitle: 'Өтінім жіберілді ⏳',
     pendingText: 'Мұғалім растағанша күте тұр. Расталған кезде ботқа хабарлама келеді.',
+    pendingTextPlayer: 'Тіркелуіңді әкімші растағанша сәл күте тұр 🙌',
     checkStatus: 'Тексеру',
     // Табтар
     tabPlay: 'Ойнау', tabBattles: 'Батлдар', tabRating: 'Рейтинг', tabProfile: 'Профиль', tabAdmin: 'Басқару',
@@ -137,6 +140,8 @@ export const T = {
     roleLabel: 'Кем регистрируешься?',
     roleStudent: 'Ученик',
     roleTeacher: 'Я — учитель',
+    rolePlayer: 'Свободный игрок',
+    yourSchool: 'Твоя школа',
     yourClass: 'Твой класс',
     language: 'Язык',
     send: 'Отправить',
@@ -144,6 +149,7 @@ export const T = {
     // Ожидание
     pendingTitle: 'Заявка отправлена ⏳',
     pendingText: 'Дождись подтверждения учителя. Когда подтвердят, придёт сообщение в бот.',
+    pendingTextPlayer: 'Подожди, пока администратор подтвердит регистрацию 🙌',
     checkStatus: 'Проверить',
     // Табы
     tabPlay: 'Играть', tabBattles: 'Баттлы', tabRating: 'Рейтинг', tabProfile: 'Профиль', tabAdmin: 'Управление',

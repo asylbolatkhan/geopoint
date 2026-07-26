@@ -58,7 +58,7 @@ export default function App() {
   }
 
   if (me.status === 'pending') {
-    return <PendingScreen lang={me.lang} onApproved={setMe} />;
+    return <PendingScreen lang={me.lang} role={me.role} onApproved={setMe} />;
   }
 
   // status === 'approved' — таб қабығы

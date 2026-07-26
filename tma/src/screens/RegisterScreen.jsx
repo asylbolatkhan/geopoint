@@ -3,12 +3,24 @@ import { api, ApiError } from '../api';
 import { tgUserLang, haptic } from '../telegram';
 import { useT } from '../i18n';
 
+const ROLES = ['student', 'teacher', 'player'];
+
+const chipCls = (active) =>
+  `px-4 py-2 rounded-xl text-sm font-medium border ${
+    active
+      ? 'bg-sky-500 border-sky-500 text-white'
+      : 'bg-slate-800 border-slate-700 text-slate-300'
+  }`;
+
 export default function RegisterScreen({ onRegistered }) {
   const [lang, setLang] = useState(tgUserLang());
   const t = useT(lang);
 
   const [name, setName] = useState('');
   const [role, setRole] = useState('student');
+  const [schoolId, setSchoolId] = useState(null);
+  const [schools, setSchools] = useState(null);
+  const [schoolsError, setSchoolsError] = useState(false);
   const [classId, setClassId] = useState(null);
   const [classes, setClasses] = useState(null);
   const [classesError, setClassesError] = useState(false);
@@ -16,26 +28,53 @@ export default function RegisterScreen({ onRegistered }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
 
-  const loadClasses = () => {
+  const loadSchools = () => {
+    setSchoolsError(false);
+    setSchools(null);
+    api('/schools')
+      .then((r) => {
+        setSchools(r.schools);
+        // Жалғыз мектеп болса — бірден таңдап қоямыз
+        if (r.schools.length === 1) setSchoolId(r.schools[0].id);
+      })
+      .catch(() => setSchoolsError(true));
+  };
+  useEffect(loadSchools, []);
+
+  const loadClasses = (sid) => {
     setClassesError(false);
     setClasses(null);
-    api('/classes')
+    api(`/classes?schoolId=${sid}`)
       .then((r) => setClasses(r.classes))
       .catch(() => setClassesError(true));
   };
-  useEffect(loadClasses, []);
+  useEffect(() => {
+    setClassId(null);
+    if (role === 'player' || schoolId === null) {
+      setClasses(null);
+      setClassesError(false);
+      return;
+    }
+    loadClasses(schoolId);
+  }, [schoolId, role]);
 
-  const isTeacher = role === 'teacher';
-  const canSubmit = name.trim().length > 0 && (isTeacher || classId !== null) && !submitting;
+  const canSubmit =
+    name.trim().length > 0 &&
+    !submitting &&
+    (role === 'player' ||
+      (role === 'teacher' ? schoolId !== null : schoolId !== null && classId !== null));
 
   const submit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     setError(false);
     try {
-      const body = isTeacher
-        ? { name: name.trim(), lang, role: 'teacher' }
-        : { name: name.trim(), classId, lang };
+      const body =
+        role === 'player'
+          ? { name: name.trim(), lang, role: 'player' }
+          : role === 'teacher'
+            ? { name: name.trim(), lang, role: 'teacher', schoolId }
+            : { name: name.trim(), schoolId, classId, lang };
       const r = await api('/register', { method: 'POST', body });
       haptic('medium');
       onRegistered(r.student);
@@ -56,6 +95,8 @@ export default function RegisterScreen({ onRegistered }) {
       setSubmitting(false);
     }
   };
+
+  const roleLabels = { student: t.roleStudent, teacher: t.roleTeacher, player: t.rolePlayer };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-6">
@@ -78,39 +119,62 @@ export default function RegisterScreen({ onRegistered }) {
 
         <div className="flex flex-col gap-2">
           <label className="text-sm text-slate-400">{t.roleLabel}</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => { haptic('light'); setRole('student'); }}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
-                role === 'student'
-                  ? 'bg-sky-500 border-sky-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-300'
-              }`}
-            >
-              {t.roleStudent}
-            </button>
-            <button
-              type="button"
-              onClick={() => { haptic('light'); setRole('teacher'); }}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
-                role === 'teacher'
-                  ? 'bg-sky-500 border-sky-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-300'
-              }`}
-            >
-              {t.roleTeacher}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {ROLES.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => { haptic('light'); setRole(r); }}
+                className={chipCls(role === r)}
+              >
+                {roleLabels[r]}
+              </button>
+            ))}
           </div>
         </div>
 
-        {!isTeacher && (
+        {role !== 'player' && (
+        <div className="flex flex-col gap-2">
+          <label className="text-sm text-slate-400">{t.yourSchool}</label>
+          {schoolsError ? (
+            <button
+              type="button"
+              onClick={loadSchools}
+              className="text-sm text-sky-400 underline text-left"
+            >
+              {t.retry}
+            </button>
+          ) : schools === null ? (
+            <div className="flex justify-center py-4">
+              <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {schools.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    haptic('light');
+                    setSchoolId(s.id);
+                  }}
+                  className={chipCls(schoolId === s.id)}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        )}
+
+        {role === 'student' && schoolId !== null && (
         <div className="flex flex-col gap-2">
           <label className="text-sm text-slate-400">{t.yourClass}</label>
           {classesError ? (
             <button
               type="button"
-              onClick={loadClasses}
+              onClick={() => loadClasses(schoolId)}
               className="text-sm text-sky-400 underline text-left"
             >
               {t.retry}
@@ -129,11 +193,7 @@ export default function RegisterScreen({ onRegistered }) {
                     haptic('light');
                     setClassId(c.id);
                   }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium border ${
-                    classId === c.id
-                      ? 'bg-sky-500 border-sky-500 text-white'
-                      : 'bg-slate-800 border-slate-700 text-slate-300'
-                  }`}
+                  className={chipCls(classId === c.id)}
                 >
                   {c.name}
                 </button>
@@ -149,22 +209,14 @@ export default function RegisterScreen({ onRegistered }) {
             <button
               type="button"
               onClick={() => setLang('kk')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
-                lang === 'kk'
-                  ? 'bg-sky-500 border-sky-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-300'
-              }`}
+              className={chipCls(lang === 'kk')}
             >
               Қазақша
             </button>
             <button
               type="button"
               onClick={() => setLang('ru')}
-              className={`px-4 py-2 rounded-xl text-sm font-medium border ${
-                lang === 'ru'
-                  ? 'bg-sky-500 border-sky-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-300'
-              }`}
+              className={chipCls(lang === 'ru')}
             >
               Русский
             </button>
