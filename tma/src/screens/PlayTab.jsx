@@ -127,13 +127,20 @@ export default function PlayTab({ lang }) {
 
   if (phase === 'playing') {
     return (
-      <QuizPlay
-        questions={game.questions}
-        questionSeconds={timerSec}
-        lang={lang}
-        onFinish={handleFinish}
-        checkAnswer={(index, answer) => api(`/solo/${game.gameId}/answer`, { method: 'POST', body: { index, answer } })}
-      />
+      <div className="flex flex-col gap-3">
+        {game.pointsEligible === false && (
+          <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 text-amber-300 text-sm p-3">
+            ⚠️ {t.modeCapPlayNote}
+          </div>
+        )}
+        <QuizPlay
+          questions={game.questions}
+          questionSeconds={timerSec}
+          lang={lang}
+          onFinish={handleFinish}
+          checkAnswer={(index, answer) => api(`/solo/${game.gameId}/answer`, { method: 'POST', body: { index, answer } })}
+        />
+      </div>
     );
   }
 
@@ -159,7 +166,7 @@ export default function PlayTab({ lang }) {
   }
 
   if (phase === 'result') {
-    const capped = result.points < result.correct;
+    const capped = result.modeCapped === true;
     return (
       <div className="flex flex-col gap-4">
         <Card className="flex flex-col items-center gap-1 text-center">
@@ -169,7 +176,7 @@ export default function PlayTab({ lang }) {
         <Card className="flex flex-col items-center gap-1 text-center">
           <div className="text-3xl font-bold text-green-400">+{result.points} {t.points}</div>
           <div className="text-slate-400 text-sm">{t.earnedPoints}</div>
-          {capped && <p className="text-slate-400 text-sm mt-1">{t.dailyCapNote}</p>}
+          {capped && <p className="text-slate-400 text-sm mt-1">{t.modeCapResultNote}</p>}
         </Card>
         <div className="flex gap-3">
           <button
@@ -282,7 +289,7 @@ export default function PlayTab({ lang }) {
         {starting ? t.loading : startError ? t.retry : t.start}
       </button>
 
-      <p className="text-slate-500 text-xs text-center">💡 {t.dailyCapNote}</p>
+      <p className="text-slate-500 text-xs text-center">💡 {t.modeCapSetupNote}</p>
     </div>
   );
 }

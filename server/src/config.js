@@ -7,7 +7,7 @@ export const POINTS = {
   battleExpiredBonus: 10,    // жауапсыз/қабылданбаған батл: ойнаған жаққа
   battleExpiredPenalty: -10, // жауапсыз/қабылданбаған батл: елемеген жаққа
   soloCorrect: 1,
-  soloDailyCap: 50,          // жаттығудан күніне ең көп осынша ұпай (өзгертсең tma/src/i18n.js dailyCapNote мәтінін де жаңарт)
+  soloModePlaysPerDay: 2,    // бір режим (баптау жиынтығы) күніне осынша ойынға ғана ұпай әкеледі (өзгертсең tma/src/i18n.js modeCap* мәтіндерін де жаңарт)
 };
 
 export const BATTLE = {

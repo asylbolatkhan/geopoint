@@ -6,6 +6,7 @@ import { awardPoints } from '../points.js';
 import { POINTS, TIMEZONE } from '../config.js';
 import { isDbId } from '../ids.js';
 import { mergeAnswers, validAnswerValue } from '../soloProgress.js';
+import { soloModeKey, modePointsAllowed } from '../soloMode.js';
 
 export const soloRouter = Router();
 soloRouter.use(requireApproved);
@@ -15,16 +16,25 @@ soloRouter.post('/start', async (req, res, next) => {
     const config = parseGameConfig(req.body, { allowAll: true });
     if (!config) return res.status(400).json({ error: 'bad_config' });
     const questions = generateQuestions(config);
+    const modeKey = soloModeKey(config);
+    // Клиент ойын басында-ақ «бұл ойын ұпайсыз» деп ескерте алуы үшін
+    const { rows: playRows } = await query(
+      `SELECT COUNT(*) AS n FROM solo_games
+       WHERE student_id = $1 AND mode_key = $2 AND status = 'completed'
+         AND (created_at AT TIME ZONE $3)::date = (now() AT TIME ZONE $3)::date`,
+      [req.student.id, modeKey, TIMEZONE]
+    );
     const { rows } = await query(
-      `INSERT INTO solo_games (student_id, config, questions, total)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [req.student.id, config, JSON.stringify(questions), questions.length]
+      `INSERT INTO solo_games (student_id, config, questions, total, mode_key)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [req.student.id, config, JSON.stringify(questions), questions.length, modeKey]
     );
     const gameId = rows[0].id;
     res.json({
       gameId,
       total: questions.length,
       questions: renderForPlayer(questions, req.student.lang, gameId),
+      pointsEligible: modePointsAllowed(Number(playRows[0].n)),
     });
   } catch (e) { next(e); }
 });
@@ -98,17 +108,19 @@ soloRouter.post('/:id/submit', async (req, res, next) => {
          WHERE id = $4`,
         [JSON.stringify(finalAnswers), correct, Math.max(0, Number(durationMs) || 0), gameId]
       );
-      // Күндік шек (Алматы уақытымен) — сол транзакция ішінде оқылады
-      const { rows: capRows } = await client.query(
-        `SELECT COALESCE(SUM(amount), 0) AS total FROM points_events
-         WHERE student_id = $1 AND reason = 'solo_correct'
-           AND (created_at AT TIME ZONE $2)::date = (now() AT TIME ZONE $2)::date`,
-        [req.student.id, TIMEZONE]
+      // Режим шегі: осы ойынға ДЕЙІН бүгін (Алматы) сол режимде аяқталған ойындар —
+      // өз id-і шығарылады, себебі жоғарыда status='completed' болып қойылды.
+      // pg_advisory_xact_lock параллель submit-тердің жарысын болдырмайды.
+      const { rows: playRows } = await client.query(
+        `SELECT COUNT(*) AS n FROM solo_games
+         WHERE student_id = $1 AND mode_key = $2 AND status = 'completed' AND id <> $3
+           AND (created_at AT TIME ZONE $4)::date = (now() AT TIME ZONE $4)::date`,
+        [req.student.id, game.mode_key, gameId, TIMEZONE]
       );
-      const alreadyToday = Number(capRows[0].total);
-      const points = Math.max(0, Math.min(correct * POINTS.soloCorrect, POINTS.soloDailyCap - alreadyToday));
+      const modeCapped = !modePointsAllowed(Number(playRows[0].n));
+      const points = modeCapped ? 0 : correct * POINTS.soloCorrect;
       if (points > 0) await awardPoints(req.student.id, points, 'solo_correct', gameId, client);
-      return { code: 200, body: { correct, total: game.total, points, correctOptionIndexes } };
+      return { code: 200, body: { correct, total: game.total, points, modeCapped, correctOptionIndexes } };
     });
     res.status(result.code).json(result.body);
   } catch (e) { next(e); }
