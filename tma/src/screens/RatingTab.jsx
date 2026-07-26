@@ -6,7 +6,8 @@ import Card from '../components/Card';
 
 const SCOPES_STUDENT = ['class', 'school', 'classes'];
 const SCOPES_TEACHER = ['school', 'classes', 'teachers'];
-const SCOPES_ADMIN = ['school', 'classes', 'teachers'];
+const SCOPES_ADMIN = ['school', 'classes', 'teachers', 'global'];
+const SCOPES_PLAYER = ['global'];
 
 function Chip({ selected, onClick, children }) {
   return (
@@ -36,12 +37,14 @@ function medal(rank) {
 function scopesFor(role) {
   if (role === 'teacher') return SCOPES_TEACHER;
   if (role === 'admin') return SCOPES_ADMIN;
+  if (role === 'player') return SCOPES_PLAYER;
   return SCOPES_STUDENT;
 }
 
 function defaultScopeFor(role) {
   if (role === 'teacher') return 'teachers';
   if (role === 'admin') return 'school';
+  if (role === 'player') return 'global';
   return 'class';
 }
 
@@ -139,7 +142,9 @@ export default function RatingTab({ lang, me }) {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{r.name}</div>
                     <div className="text-slate-400 text-sm truncate">
-                      {isClasses ? `${r.students} ${t.students}` : (r.class_name ?? t.teacherBadge)}
+                      {isClasses
+                        ? `${r.students} ${t.students}`
+                        : scope === 'teachers' ? t.teacherBadge : scope === 'global' ? '' : (r.class_name ?? '')}
                     </div>
                   </div>
                 </div>

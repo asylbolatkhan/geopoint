@@ -89,7 +89,7 @@ export const T = {
     onlineMatchLost: 'Ойын үзіліп қалды',
     onlineNow: 'желіде',
     // Рейтинг
-    scopeClass: 'Сынып', scopeSchool: 'Мектеп', scopeClasses: 'Сыныптар', scopeTeachers: 'Мұғалімдер',
+    scopeClass: 'Сынып', scopeSchool: 'Мектеп', scopeClasses: 'Сыныптар', scopeTeachers: 'Мұғалімдер', scopeGlobal: 'Жалпы рейтинг',
     thisMonth: 'Осы ай', allTime: 'Барлық уақыт',
     points: 'ұпай', students: 'оқушы', avgPoints: 'орташа ұпай',
     emptyBoard: 'Әзірге ешкім ұпай жинамаған',
@@ -220,7 +220,7 @@ export const T = {
     onlineMatchLost: 'Матч был прерван',
     onlineNow: 'в сети',
     // Рейтинг
-    scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы', scopeTeachers: 'Учителя',
+    scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы', scopeTeachers: 'Учителя', scopeGlobal: 'Общий рейтинг',
     thisMonth: 'Этот месяц', allTime: 'Всё время',
     points: 'очков', students: 'учеников', avgPoints: 'средний балл',
     emptyBoard: 'Пока никто не набрал очков',

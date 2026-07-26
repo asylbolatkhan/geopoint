@@ -32,18 +32,37 @@ export async function notifyAdmins(textByLang) {
   }
 }
 
-// Барлық қабылданған қолданушыларға хабарлайды. Telegram-дың ~30 хабарлама/сек
+// Бір мектептің қабылданған қолданушыларына хабарлайды. Telegram-дың ~30 хабарлама/сек
 // шегінен аспас үшін Promise.all емес, кезекпен + 50мс кідіріспен жібереді.
-export async function notifyAllApproved(textByLang) {
+export async function notifySchoolMembers(schoolId, textByLang) {
   if (!bot) return;
   try {
-    const { rows } = await query("SELECT tg_user_id, lang FROM students WHERE status = 'approved'");
+    const { rows } = await query(
+      "SELECT tg_user_id, lang FROM students WHERE status = 'approved' AND school_id = $1",
+      [schoolId]
+    );
     for (const s of rows) {
       await notify(s.tg_user_id, textByLang(s.lang), s.lang);
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
   } catch (e) {
-    console.error('notifyAllApproved failed:', e.message);
+    console.error('notifySchoolMembers failed:', e.message);
+  }
+}
+
+// Барлық қабылданған жеке ойыншыларға хабарлайды (мектепке тәуелсіз).
+export async function notifyPlayers(textByLang) {
+  if (!bot) return;
+  try {
+    const { rows } = await query(
+      "SELECT tg_user_id, lang FROM students WHERE status = 'approved' AND role = 'player'"
+    );
+    for (const s of rows) {
+      await notify(s.tg_user_id, textByLang(s.lang), s.lang);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  } catch (e) {
+    console.error('notifyPlayers failed:', e.message);
   }
 }
 
