@@ -99,7 +99,7 @@ authRouter.get('/students', requireApproved, async (req, res, next) => {
       [req.student.id, classId, q]
     );
     const eligibleForTeacherBattle =
-      req.student.role !== 'student' ? true : await isTopStudent(req.student.id);
+      req.student.role !== 'student' ? true : await isTopStudent(req.student.id, req.student.school_id);
     res.json({ students: rows, eligibleForTeacherBattle });
   } catch (e) { next(e); }
 });
