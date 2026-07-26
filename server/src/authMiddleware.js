@@ -22,8 +22,8 @@ export async function resolveStudentFromAuthToken(token) {
   let student = rows[0] || null;
   if (!student && String(tgUser.id) === process.env.ADMIN_TG_ID) {
     ({ rows } = await query(
-      `INSERT INTO students (tg_user_id, name, class_id, status, role)
-       VALUES ($1, $2, NULL, 'approved', 'admin')
+      `INSERT INTO students (tg_user_id, name, class_id, status, role, school_id)
+       VALUES ($1, $2, NULL, 'approved', 'admin', (SELECT id FROM schools ORDER BY id LIMIT 1))
        ON CONFLICT (tg_user_id) DO NOTHING
        RETURNING *`,
       [tgUser.id, tgUser.first_name || 'Admin']
