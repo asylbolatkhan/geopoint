@@ -41,13 +41,7 @@ export default function RegisterScreen({ onRegistered }) {
   };
   useEffect(loadSchools, []);
 
-  const loadClasses = (sid) => {
-    setClassesError(false);
-    setClasses(null);
-    api(`/classes?schoolId=${sid}`)
-      .then((r) => setClasses(r.classes))
-      .catch(() => setClassesError(true));
-  };
+  const [classesRetry, setClassesRetry] = useState(0);
   useEffect(() => {
     setClassId(null);
     if (role === 'player' || schoolId === null) {
@@ -55,8 +49,15 @@ export default function RegisterScreen({ onRegistered }) {
       setClassesError(false);
       return;
     }
-    loadClasses(schoolId);
-  }, [schoolId, role]);
+    // Мектеп ауысса, ескі fetch жауабын елемейміз (out-of-order қорғанысы)
+    let ignore = false;
+    setClassesError(false);
+    setClasses(null);
+    api(`/classes?schoolId=${schoolId}`)
+      .then((r) => { if (!ignore) setClasses(r.classes); })
+      .catch(() => { if (!ignore) setClassesError(true); });
+    return () => { ignore = true; };
+  }, [schoolId, role, classesRetry]);
 
   const canSubmit =
     name.trim().length > 0 &&
@@ -174,7 +175,7 @@ export default function RegisterScreen({ onRegistered }) {
           {classesError ? (
             <button
               type="button"
-              onClick={() => loadClasses(schoolId)}
+              onClick={() => setClassesRetry((n) => n + 1)}
               className="text-sm text-sky-400 underline text-left"
             >
               {t.retry}
