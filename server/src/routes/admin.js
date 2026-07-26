@@ -19,8 +19,11 @@ async function studentById(id) {
 adminRouter.get('/pending', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.role, s.tg_user_id, s.created_at
-       FROM students s LEFT JOIN classes c ON c.id = s.class_id
+      `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.role, s.tg_user_id, s.created_at,
+              s.school_id, sc.name AS school_name
+       FROM students s
+       LEFT JOIN classes c ON c.id = s.class_id
+       LEFT JOIN schools sc ON sc.id = s.school_id
        WHERE s.status = 'pending' ORDER BY s.created_at`
     );
     res.json({ students: rows });
@@ -31,11 +34,16 @@ adminRouter.post('/students/:id/approve', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
-    const classId = req.body?.classId ? Number(req.body.classId) : null;
-    if (classId !== null && !isDbId(classId)) return res.status(400).json({ error: 'bad_class' });
-    if (classId !== null) {
-      const cls = await query('SELECT id FROM classes WHERE id = $1', [classId]);
-      if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
+    const student = await studentById(id);
+    if (!student || student.status !== 'pending') return res.status(404).json({ error: 'not_found' });
+    let classId = null;
+    if (student.role === 'student' && req.body?.classId) {
+      classId = Number(req.body.classId);
+      if (!isDbId(classId)) return res.status(400).json({ error: 'bad_class' });
+      const cls = await query('SELECT school_id FROM classes WHERE id = $1', [classId]);
+      if (!cls.rows[0] || cls.rows[0].school_id !== student.school_id) {
+        return res.status(400).json({ error: 'bad_class' });
+      }
     }
     const { rows } = await query(
       `UPDATE students SET status = 'approved', class_id = COALESCE($2, class_id)
@@ -64,12 +72,15 @@ adminRouter.get('/students', async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT s.id, s.name, s.class_id, c.name AS class_name, s.role, s.lang, s.created_at,
+              s.school_id, sc.name AS school_name,
               COALESCE(SUM(p.amount) FILTER (WHERE p.month_key = $1), 0)::int AS month_points
        FROM students s
        LEFT JOIN classes c ON c.id = s.class_id
+       LEFT JOIN schools sc ON sc.id = s.school_id
        LEFT JOIN points_events p ON p.student_id = s.id
-       WHERE s.status = 'approved' AND s.role IN ('student','teacher')
-       GROUP BY s.id, c.name ORDER BY c.name, s.name`,
+       WHERE s.status = 'approved' AND s.role IN ('student','teacher','player')
+       GROUP BY s.id, c.name, sc.name
+       ORDER BY sc.name NULLS LAST, c.name NULLS LAST, s.name`,
       [monthKey()]
     );
     res.json({ students: rows });
@@ -82,8 +93,12 @@ adminRouter.patch('/students/:id', async (req, res, next) => {
     if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
     const classId = Number(req.body?.classId);
     if (!isDbId(classId)) return res.status(400).json({ error: 'bad_class' });
-    const cls = await query('SELECT id FROM classes WHERE id = $1', [classId]);
-    if (!cls.rows[0]) return res.status(400).json({ error: 'bad_class' });
+    const student = await studentById(id);
+    if (!student || student.role !== 'student') return res.status(404).json({ error: 'not_found' });
+    const cls = await query('SELECT school_id FROM classes WHERE id = $1', [classId]);
+    if (!cls.rows[0] || cls.rows[0].school_id !== student.school_id) {
+      return res.status(400).json({ error: 'bad_class' });
+    }
     const { rows } = await query(
       `UPDATE students SET class_id = $2 WHERE id = $1 AND role = 'student' RETURNING *`,
       [id, classId]
@@ -134,7 +149,7 @@ adminRouter.delete('/points/:eventId', async (req, res, next) => {
 adminRouter.get('/classes', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.name,
+      `SELECT c.id, c.name, c.school_id,
               COUNT(s.id) FILTER (WHERE s.status = 'approved')::int AS students
        FROM classes c LEFT JOIN students s ON s.class_id = c.id
        GROUP BY c.id ORDER BY c.name`
@@ -147,13 +162,15 @@ adminRouter.post('/classes', async (req, res, next) => {
   try {
     const name = String(req.body?.name || '').trim();
     if (!name || name.length > 20) return res.status(400).json({ error: 'bad_name' });
-    const school = await query('SELECT id FROM schools LIMIT 1');
-    if (!school.rows[0]) return res.status(500).json({ error: 'no_school_seeded' });
+    const schoolId = Number(req.body?.schoolId);
+    if (!isDbId(schoolId)) return res.status(400).json({ error: 'bad_school' });
+    const school = await query('SELECT id FROM schools WHERE id = $1', [schoolId]);
+    if (!school.rows[0]) return res.status(400).json({ error: 'bad_school' });
     const { rows } = await query(
       `INSERT INTO classes (school_id, name) VALUES ($1, $2)
        ON CONFLICT (school_id, name) DO UPDATE SET name = EXCLUDED.name
        RETURNING *`,
-      [school.rows[0].id, name]
+      [schoolId, name]
     );
     res.json({ class: rows[0] });
   } catch (e) { next(e); }
@@ -171,10 +188,53 @@ adminRouter.delete('/classes/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+adminRouter.get('/schools', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT sc.id, sc.name,
+              (SELECT COUNT(*) FROM classes c WHERE c.school_id = sc.id)::int AS classes,
+              (SELECT COUNT(*) FROM students s
+               WHERE s.school_id = sc.id AND s.status = 'approved')::int AS members
+       FROM schools sc ORDER BY sc.name`
+    );
+    res.json({ schools: rows });
+  } catch (e) { next(e); }
+});
+
+adminRouter.post('/schools', async (req, res, next) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    if (!name || name.length > 40) return res.status(400).json({ error: 'bad_name' });
+    const { rows } = await query('INSERT INTO schools (name) VALUES ($1) RETURNING *', [name]);
+    res.json({ school: rows[0] });
+  } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ error: 'duplicate' });
+    next(e);
+  }
+});
+
+adminRouter.delete('/schools/:id', async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!isDbId(id)) return res.status(404).json({ error: 'not_found' });
+    const used = await query(
+      `SELECT 1 FROM classes WHERE school_id = $1
+       UNION ALL
+       SELECT 1 FROM students WHERE school_id = $1
+       LIMIT 1`,
+      [id]
+    );
+    if (used.rows[0]) return res.status(409).json({ error: 'not_empty' });
+    const { rowCount } = await query('DELETE FROM schools WHERE id = $1', [id]);
+    if (!rowCount) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 adminRouter.get('/stats', async (req, res, next) => {
   try {
     const { rows: students } = await query(
-      `SELECT s.id, s.name, c.name AS class_name,
+      `SELECT s.id, s.name, c.name AS class_name, sc.name AS school_name,
               (SELECT COUNT(*) FROM solo_games g WHERE g.student_id = s.id AND g.status = 'completed')::int
             + (SELECT COUNT(*) FROM battles b
                WHERE (b.challenger_id = s.id AND b.challenger_result IS NOT NULL)
@@ -188,9 +248,11 @@ adminRouter.get('/stats', async (req, res, next) => {
                 (SELECT MAX(b.created_at) FROM battles b
                  WHERE b.challenger_id = s.id OR b.opponent_id = s.id)
               ) AS last_active
-       FROM students s JOIN classes c ON c.id = s.class_id
+       FROM students s
+       JOIN classes c ON c.id = s.class_id
+       LEFT JOIN schools sc ON sc.id = s.school_id
        WHERE s.status = 'approved' AND s.role = 'student'
-       ORDER BY c.name, s.name`,
+       ORDER BY sc.name, c.name, s.name`,
       [monthKey()]
     );
 
@@ -256,7 +318,7 @@ adminRouter.get('/stats', async (req, res, next) => {
     );
 
     const { rows: classSummary } = await query(
-      `SELECT c.id, c.name AS class_name,
+      `SELECT c.id, c.name AS class_name, sc.name AS school_name,
               (SELECT COUNT(*) FROM students s
                WHERE s.class_id = c.id AND s.status = 'approved' AND s.role = 'student')::int AS students,
               COALESCE((SELECT SUM(p.amount) FROM points_events p
@@ -268,7 +330,8 @@ adminRouter.get('/stats', async (req, res, next) => {
                                       WHERE s.class_id = c.id AND s.status = 'approved' AND s.role = 'student')
                  AND g.status = 'completed'), 0)::int AS accuracy
        FROM classes c
-       ORDER BY c.name`,
+       JOIN schools sc ON sc.id = c.school_id
+       ORDER BY sc.name, c.name`,
       [monthKey()]
     );
 

@@ -48,8 +48,14 @@ export function unansweredPointsEvents(challengerSubmitted, opponentSubmitted) {
 }
 
 // Батл тастау рұқсаты: 'ok' | 'bad_opponent' | 'not_eligible_teacher_battle'
-export function challengeEligibility({ challengerRole, opponentRole, challengerIsTop }) {
-  if (opponentRole !== 'student' && opponentRole !== 'teacher') return 'bad_opponent';
+// Бағалау реті маңызды: admin қарсылас әрқашан жабық, player-дер тек player-мен
+// (мектепсіз) ойнай алады, ал student/teacher жұбына мектеп сәйкестігі талап етіледі.
+export function challengeEligibility({ challengerRole, opponentRole, challengerIsTop, sameSchool }) {
+  if (opponentRole === 'admin') return 'bad_opponent';
+  if (challengerRole === 'player') return opponentRole === 'player' ? 'ok' : 'bad_opponent';
+  if (opponentRole === 'player') return 'bad_opponent';
+  if (challengerRole === 'admin') return 'ok';
+  if (!sameSchool) return 'bad_opponent';
   if (challengerRole === 'student' && opponentRole === 'teacher' && !challengerIsTop) {
     return 'not_eligible_teacher_battle';
   }

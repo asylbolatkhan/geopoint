@@ -69,30 +69,62 @@ describe('declinePointsEvents', () => {
 
 describe('challengeEligibility', () => {
   it('student -> student is ok', () => {
-    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'student', challengerIsTop: false })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'student', challengerIsTop: false, sameSchool: true })).toBe('ok');
   });
   it('teacher -> teacher is ok', () => {
-    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'teacher', challengerIsTop: false })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'teacher', challengerIsTop: false, sameSchool: true })).toBe('ok');
   });
   it('teacher -> student is ok', () => {
-    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'student', challengerIsTop: false })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'student', challengerIsTop: false, sameSchool: true })).toBe('ok');
   });
   it('admin -> teacher is ok', () => {
-    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'teacher', challengerIsTop: false })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'teacher', challengerIsTop: false, sameSchool: true })).toBe('ok');
   });
   it('admin -> student is ok', () => {
-    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'student', challengerIsTop: false })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'student', challengerIsTop: false, sameSchool: true })).toBe('ok');
   });
   it('student -> teacher: ok when challenger is top-3 of previous month', () => {
-    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: true })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: true, sameSchool: true })).toBe('ok');
   });
   it('student -> teacher: not eligible when challenger is not top-3', () => {
-    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: false }))
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: false, sameSchool: true }))
       .toBe('not_eligible_teacher_battle');
   });
   it('anyone -> admin is a bad opponent', () => {
-    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'admin', challengerIsTop: false })).toBe('bad_opponent');
-    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'admin', challengerIsTop: false })).toBe('bad_opponent');
-    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'admin', challengerIsTop: false })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'admin', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'admin', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'admin', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+  });
+
+  it('student -> student cross-school is a bad opponent', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'student', challengerIsTop: false, sameSchool: false })).toBe('bad_opponent');
+  });
+  it('teacher -> student cross-school is a bad opponent', () => {
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'student', challengerIsTop: false, sameSchool: false })).toBe('bad_opponent');
+  });
+  it('teacher -> teacher cross-school is a bad opponent', () => {
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'teacher', challengerIsTop: false, sameSchool: false })).toBe('bad_opponent');
+  });
+  it('student -> teacher cross-school is a bad opponent even when top-3 (rule 5 before rule 6)', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'teacher', challengerIsTop: true, sameSchool: false })).toBe('bad_opponent');
+  });
+
+  it('player -> player is ok regardless of school', () => {
+    expect(challengeEligibility({ challengerRole: 'player', opponentRole: 'player', challengerIsTop: false, sameSchool: false })).toBe('ok');
+    expect(challengeEligibility({ challengerRole: 'player', opponentRole: 'player', challengerIsTop: false, sameSchool: true })).toBe('ok');
+  });
+  it('player -> student/teacher/admin is a bad opponent', () => {
+    expect(challengeEligibility({ challengerRole: 'player', opponentRole: 'student', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'player', opponentRole: 'teacher', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'player', opponentRole: 'admin', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+  });
+  it('student/teacher/admin -> player is a bad opponent', () => {
+    expect(challengeEligibility({ challengerRole: 'student', opponentRole: 'player', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'teacher', opponentRole: 'player', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'player', challengerIsTop: false, sameSchool: true })).toBe('bad_opponent');
+  });
+
+  it('admin -> student cross-school is still ok (global admin ignores school)', () => {
+    expect(challengeEligibility({ challengerRole: 'admin', opponentRole: 'student', challengerIsTop: false, sameSchool: false })).toBe('ok');
   });
 });

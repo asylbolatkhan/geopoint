@@ -12,6 +12,8 @@ export const T = {
     roleLabel: 'Кім боп тіркелесің?',
     roleStudent: 'Оқушы',
     roleTeacher: 'Мен — мұғалім',
+    rolePlayer: 'Жеке ойыншы',
+    yourSchool: 'Мектебің',
     yourClass: 'Сыныбың',
     language: 'Тіл',
     send: 'Жіберу',
@@ -19,6 +21,7 @@ export const T = {
     // Күту
     pendingTitle: 'Өтінім жіберілді ⏳',
     pendingText: 'Мұғалім растағанша күте тұр. Расталған кезде ботқа хабарлама келеді.',
+    pendingTextPlayer: 'Тіркелуіңді әкімші растағанша сәл күте тұр 🙌',
     checkStatus: 'Тексеру',
     // Табтар
     tabPlay: 'Ойнау', tabBattles: 'Батлдар', tabRating: 'Рейтинг', tabProfile: 'Профиль', tabAdmin: 'Басқару',
@@ -86,7 +89,7 @@ export const T = {
     onlineMatchLost: 'Ойын үзіліп қалды',
     onlineNow: 'желіде',
     // Рейтинг
-    scopeClass: 'Сынып', scopeSchool: 'Мектеп', scopeClasses: 'Сыныптар', scopeTeachers: 'Мұғалімдер',
+    scopeClass: 'Сынып', scopeSchool: 'Мектеп', scopeClasses: 'Сыныптар', scopeTeachers: 'Мұғалімдер', scopeGlobal: 'Жалпы рейтинг',
     thisMonth: 'Осы ай', allTime: 'Барлық уақыт',
     points: 'ұпай', students: 'оқушы', avgPoints: 'орташа ұпай',
     emptyBoard: 'Әзірге ешкім ұпай жинамаған',
@@ -111,6 +114,9 @@ export const T = {
     noPending: 'Жаңа өтінім жоқ',
     addClass: 'Сынып қосу', className: 'Сынып атауы (мыс. 7Ә)',
     classNotEmpty: 'Бұл сыныпта оқушылар бар — алдымен оларды көшіріңіз',
+    playerBadge: 'Жеке ойыншы',
+    addSchool: 'Мектеп қосу', schoolName: 'Мектеп атауы',
+    schoolNotEmpty: 'Мектепте сыныптар немесе мүшелер бар',
     pointsJournal: 'Ұпай журналы', deleteEvent: 'Жазбаны өшіру',
     deleteStudentConfirm: 'Оқушыны өшірсеңіз, барлық ұпайы рейтингтен алынады. Өшіру?',
     statContinents: 'Құрлық бойынша қиындық', statMissed: 'Ең көп қателесетін елдер',
@@ -137,6 +143,8 @@ export const T = {
     roleLabel: 'Кем регистрируешься?',
     roleStudent: 'Ученик',
     roleTeacher: 'Я — учитель',
+    rolePlayer: 'Свободный игрок',
+    yourSchool: 'Твоя школа',
     yourClass: 'Твой класс',
     language: 'Язык',
     send: 'Отправить',
@@ -144,6 +152,7 @@ export const T = {
     // Ожидание
     pendingTitle: 'Заявка отправлена ⏳',
     pendingText: 'Дождись подтверждения учителя. Когда подтвердят, придёт сообщение в бот.',
+    pendingTextPlayer: 'Подожди, пока администратор подтвердит регистрацию 🙌',
     checkStatus: 'Проверить',
     // Табы
     tabPlay: 'Играть', tabBattles: 'Баттлы', tabRating: 'Рейтинг', tabProfile: 'Профиль', tabAdmin: 'Управление',
@@ -211,7 +220,7 @@ export const T = {
     onlineMatchLost: 'Матч был прерван',
     onlineNow: 'в сети',
     // Рейтинг
-    scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы', scopeTeachers: 'Учителя',
+    scopeClass: 'Класс', scopeSchool: 'Школа', scopeClasses: 'Классы', scopeTeachers: 'Учителя', scopeGlobal: 'Общий рейтинг',
     thisMonth: 'Этот месяц', allTime: 'Всё время',
     points: 'очков', students: 'учеников', avgPoints: 'средний балл',
     emptyBoard: 'Пока никто не набрал очков',
@@ -236,6 +245,9 @@ export const T = {
     noPending: 'Новых заявок нет',
     addClass: 'Добавить класс', className: 'Название класса (напр. 7А)',
     classNotEmpty: 'В этом классе есть ученики — сначала перенеси их',
+    playerBadge: 'Свободный игрок',
+    addSchool: 'Добавить школу', schoolName: 'Название школы',
+    schoolNotEmpty: 'В школе есть классы или участники',
     pointsJournal: 'Журнал очков', deleteEvent: 'Удалить запись',
     deleteStudentConfirm: 'Если удалишь ученика, все его очки уберутся из рейтинга. Удалить?',
     statContinents: 'Сложность по континентам', statMissed: 'Страны с наибольшим числом ошибок',

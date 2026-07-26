@@ -89,14 +89,19 @@ function PendingSection({ t, lang, classes, list, loading, error, onRetry, onMut
             <div className="min-w-0">
               <div className="font-medium truncate">{s.name}</div>
               <div className="text-slate-500 text-xs">{fmtDate(s.created_at, lang)}</div>
+              {s.school_name && <div className="text-slate-500 text-xs truncate">{s.school_name}</div>}
             </div>
             {s.role === 'teacher' ? (
               <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-300">
                 {t.teacherBadge}
               </span>
+            ) : s.role === 'player' ? (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 border border-slate-700 text-slate-300">
+                {t.playerBadge}
+              </span>
             ) : (
               <ClassSelect
-                classes={classes}
+                classes={classes.filter((c) => c.school_id === s.school_id)}
                 value={picks[s.id] ?? s.class_id}
                 onChange={(v) => setPicks((p) => ({ ...p, [s.id]: v }))}
               />
@@ -245,7 +250,10 @@ function StudentRow({ t, lang, s, classes, expanded, onToggle, onMutated }) {
       <div onClick={onToggle} className="flex items-center justify-between gap-2 cursor-pointer active:opacity-70">
         <div className="min-w-0">
           <div className="font-medium truncate">{s.name}</div>
-          <div className="text-slate-400 text-sm truncate">{s.class_name ?? (s.role === 'teacher' ? t.teacherBadge : '')}</div>
+          <div className="text-slate-400 text-sm truncate">
+            {s.class_name ?? (s.role === 'teacher' ? t.teacherBadge : s.role === 'player' ? t.playerBadge : '')}
+          </div>
+          {s.school_name && <div className="text-slate-500 text-xs truncate">{s.school_name}</div>}
         </div>
         <div className="text-right shrink-0">
           <div className="font-bold text-sky-400">{s.month_points}</div>
@@ -255,11 +263,11 @@ function StudentRow({ t, lang, s, classes, expanded, onToggle, onMutated }) {
 
       {expanded && (
         <div className="flex flex-col gap-3 pt-2 border-t border-slate-700">
-          {s.role !== 'teacher' && (
+          {s.role === 'student' && (
             <div className="flex flex-col gap-1">
               <label className="text-xs text-slate-400">{t.changeClass}</label>
               <div className="flex gap-2">
-                <ClassSelect classes={classes} value={classId} onChange={setClassId} />
+                <ClassSelect classes={classes.filter((c) => c.school_id === s.school_id)} value={classId} onChange={setClassId} />
                 <button
                   type="button"
                   onClick={save}
@@ -344,20 +352,30 @@ function StudentsSection({ t, lang, classes, list, loading, error, onRetry, onMu
 
 // ---------- Classes ----------
 
-function ClassesSection({ t, list, loading, error, onRetry, onMutated }) {
+function ClassesSection({ t, schools, list, loading, error, onRetry, onMutated }) {
   const [name, setName] = useState('');
   const [adding, setAdding] = useState(false);
   const [addErr, setAddErr] = useState(false);
   const [delErr, setDelErr] = useState(null); // { id, notEmpty }
   const [busyId, setBusyId] = useState(null);
+  const [pickedSchoolId, setPickedSchoolId] = useState(null);
+  const [schoolName, setSchoolName] = useState('');
+  const [addingSchool, setAddingSchool] = useState(false);
+  const [schoolAddErr, setSchoolAddErr] = useState(false);
+  const [schoolDelErr, setSchoolDelErr] = useState(null); // { id, notEmpty }
+  const [schoolBusyId, setSchoolBusyId] = useState(null);
+
+  const selectedSchoolId = schools.some((sc) => sc.id === pickedSchoolId)
+    ? pickedSchoolId
+    : (schools[0]?.id ?? null);
 
   const add = async () => {
     const trimmed = name.trim();
-    if (!trimmed || adding) return;
+    if (!trimmed || adding || !selectedSchoolId) return;
     setAdding(true);
     setAddErr(false);
     try {
-      await api('/admin/classes', { method: 'POST', body: { name: trimmed } });
+      await api('/admin/classes', { method: 'POST', body: { name: trimmed, schoolId: selectedSchoolId } });
       haptic('medium');
       setName('');
       onMutated();
@@ -365,6 +383,39 @@ function ClassesSection({ t, list, loading, error, onRetry, onMutated }) {
       setAddErr(true);
     } finally {
       setAdding(false);
+    }
+  };
+
+  const addSchool = async () => {
+    const trimmed = schoolName.trim();
+    if (!trimmed || addingSchool) return;
+    setAddingSchool(true);
+    setSchoolAddErr(false);
+    try {
+      await api('/admin/schools', { method: 'POST', body: { name: trimmed } });
+      haptic('medium');
+      setSchoolName('');
+      onMutated();
+    } catch {
+      setSchoolAddErr(true);
+    } finally {
+      setAddingSchool(false);
+    }
+  };
+
+  const delSchool = async (id) => {
+    if (schoolBusyId) return;
+    setSchoolBusyId(id);
+    setSchoolDelErr(null);
+    try {
+      await api(`/admin/schools/${id}`, { method: 'DELETE' });
+      haptic('medium');
+      onMutated();
+    } catch (e) {
+      const notEmpty = e instanceof ApiError && e.status === 409;
+      setSchoolDelErr({ id, notEmpty });
+    } finally {
+      setSchoolBusyId(null);
     }
   };
 
@@ -387,10 +438,61 @@ function ClassesSection({ t, list, loading, error, onRetry, onMutated }) {
   if (loading) return <Spinner />;
   if (error) return <ErrorRetry t={t} onRetry={onRetry} />;
 
+  const schoolClasses = list.filter((c) => c.school_id === selectedSchoolId);
+
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {schools.map((sc) => (
+          <div
+            key={sc.id}
+            className={`flex items-center rounded-lg border ${
+              sc.id === selectedSchoolId
+                ? 'bg-sky-500 border-sky-500 text-white'
+                : 'bg-slate-800 border-slate-700 text-slate-300'
+            }`}
+          >
+            <button type="button" onClick={() => setPickedSchoolId(sc.id)} className="pl-3 pr-1.5 py-1.5 text-xs font-semibold">
+              {sc.name}
+            </button>
+            <button
+              type="button"
+              onClick={() => delSchool(sc.id)}
+              disabled={schoolBusyId === sc.id}
+              className="pr-2 pl-0.5 py-1.5 text-xs opacity-70 disabled:opacity-40"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      {schoolDelErr && (
+        <p className="text-red-400 text-xs">{schoolDelErr.notEmpty ? t.schoolNotEmpty : t.errorGeneric}</p>
+      )}
+
+      <Card className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            value={schoolName}
+            onChange={(e) => setSchoolName(e.target.value)}
+            maxLength={40}
+            placeholder={t.schoolName}
+            className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500"
+          />
+          <button
+            type="button"
+            onClick={addSchool}
+            disabled={addingSchool || !schoolName.trim()}
+            className="rounded-lg px-4 text-sm font-semibold bg-sky-500 text-white disabled:opacity-50"
+          >
+            {t.addSchool}
+          </button>
+        </div>
+        {schoolAddErr && <p className="text-red-400 text-xs">{t.errorGeneric}</p>}
+      </Card>
+
       <div className="flex flex-col gap-2">
-        {list.map((c) => (
+        {schoolClasses.map((c) => (
           <Card key={c.id} className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{c.name}</span>
@@ -425,7 +527,7 @@ function ClassesSection({ t, list, loading, error, onRetry, onMutated }) {
         <button
           type="button"
           onClick={add}
-          disabled={adding || !name.trim()}
+          disabled={adding || !name.trim() || !selectedSchoolId}
           className="rounded-lg py-2 text-sm font-semibold bg-sky-500 text-white disabled:opacity-50"
         >
           {t.addClass}
@@ -449,6 +551,7 @@ function StatsSection({ t, lang, data, loading, error, onRetry }) {
   if (!data) return null;
 
   const { students, continents, missed, inactive7d, classSummary } = data;
+  const multiSchool = new Set((classSummary ?? []).map((c) => c.school_name)).size > 1;
 
   return (
     <div className="flex flex-col gap-4">
@@ -493,7 +596,9 @@ function StatsSection({ t, lang, data, loading, error, onRetry }) {
               <tbody>
                 {classSummary.map((c) => (
                   <tr key={c.id} className="border-t border-slate-700/50">
-                    <td className="py-1.5 truncate max-w-[8rem]">{c.class_name}</td>
+                    <td className="py-1.5 truncate max-w-[8rem]">
+                      {multiSchool && c.school_name ? `${c.school_name} · ${c.class_name}` : c.class_name}
+                    </td>
                     <td className="py-1.5 text-right">{c.students}</td>
                     <td className={`py-1.5 text-right ${accuracyColor(c.accuracy)}`}>{c.accuracy}%</td>
                     <td className="py-1.5 text-right text-sky-400 font-semibold">{c.month_points}</td>
@@ -560,6 +665,10 @@ export default function AdminTab({ lang }) {
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState(false);
 
+  const [schools, setSchools] = useState([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [schoolsError, setSchoolsError] = useState(false);
+
   const [pending, setPending] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(true);
   const [pendingError, setPendingError] = useState(false);
@@ -579,6 +688,15 @@ export default function AdminTab({ lang }) {
       .then((r) => setClasses(r.classes))
       .catch(() => setClassesError(true))
       .finally(() => setClassesLoading(false));
+  };
+
+  const fetchSchools = () => {
+    setSchoolsLoading(true);
+    setSchoolsError(false);
+    api('/admin/schools')
+      .then((r) => setSchools(r.schools))
+      .catch(() => setSchoolsError(true))
+      .finally(() => setSchoolsLoading(false));
   };
 
   const fetchPending = () => {
@@ -611,6 +729,7 @@ export default function AdminTab({ lang }) {
   useEffect(() => {
     fetchPending();
     fetchClasses();
+    fetchSchools();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -639,6 +758,7 @@ export default function AdminTab({ lang }) {
 
   const handleClassesMutated = () => {
     fetchClasses();
+    fetchSchools();
     setStudents(null);
     setStats(null);
   };
@@ -692,10 +812,11 @@ export default function AdminTab({ lang }) {
       {section === 'classes' && (
         <ClassesSection
           t={t}
+          schools={schools}
           list={classes}
-          loading={classesLoading}
-          error={classesError}
-          onRetry={fetchClasses}
+          loading={classesLoading || schoolsLoading}
+          error={classesError || schoolsError}
+          onRetry={() => { fetchClasses(); fetchSchools(); }}
           onMutated={handleClassesMutated}
         />
       )}

@@ -129,12 +129,14 @@ battlesRouter.post('/', async (req, res, next) => {
     }
     const challengerIsTop =
       req.student.role === 'student' && opponent.role === 'teacher'
-        ? await isTopStudent(req.student.id)
+        ? await isTopStudent(req.student.id, req.student.school_id)
         : true;
+    const sameSchool = req.student.school_id != null && req.student.school_id === opponent.school_id;
     const verdict = challengeEligibility({
       challengerRole: req.student.role,
       opponentRole: opponent.role,
       challengerIsTop,
+      sameSchool,
     });
     if (verdict === 'bad_opponent') return res.status(400).json({ error: 'bad_opponent' });
     if (verdict === 'not_eligible_teacher_battle') {

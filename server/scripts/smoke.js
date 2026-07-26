@@ -30,7 +30,10 @@ assert(r.ok === true, 'health');
 // 2. Admin auto-provision + class create
 r = await call(ADMIN, 'GET', '/api/me');
 assert(r.json.student?.role === 'admin', 'admin auto-created', r.json);
-r = await call(ADMIN, 'POST', '/api/admin/classes', { name: '7Ә' });
+r = await call(ADMIN, 'GET', '/api/admin/schools');
+assert(r.status === 200 && r.json.schools.length >= 1, 'schools listed', r.json);
+const schoolId = r.json.schools[0].id;
+r = await call(ADMIN, 'POST', '/api/admin/classes', { name: '7Ә', schoolId });
 assert(r.status === 200, 'class created', r.json);
 const classId = r.json.class.id;
 

@@ -200,12 +200,14 @@ async function handleInviteSend(student, msg) {
   }
   const challengerIsTop =
     sender.role === 'student' && target.role === 'teacher'
-      ? await isTopStudent(sender.id)
+      ? await isTopStudent(sender.id, sender.school_id)
       : true;
+  const sameSchool = sender.school_id != null && sender.school_id === target.school_id;
   const verdict = challengeEligibility({
     challengerRole: sender.role,
     opponentRole: target.role,
     challengerIsTop,
+    sameSchool,
   });
   if (verdict !== 'ok') return sendInviteError(student.id, 'not_eligible');
   if ((await countBattlesTodayBetween(sender.id, target.id)) >= BATTLE.dailyPerOpponent) {

@@ -3,16 +3,10 @@ import { pool } from '../src/db.js';
 
 async function main() {
   const schoolName = process.env.SCHOOL_NAME || 'Менің мектебім';
-  const existing = await pool.query('SELECT id FROM schools LIMIT 1');
-  let schoolId;
-  if (existing.rows.length) {
-    schoolId = existing.rows[0].id;
-    console.log('school already exists, id', schoolId);
-  } else {
-    const { rows } = await pool.query('INSERT INTO schools (name) VALUES ($1) RETURNING id', [schoolName]);
-    schoolId = rows[0].id;
-    console.log('created school', schoolName, 'id', schoolId);
-  }
+  await pool.query('INSERT INTO schools (name) VALUES ($1) ON CONFLICT (name) DO NOTHING', [schoolName]);
+  const { rows } = await pool.query('SELECT id FROM schools WHERE name = $1', [schoolName]);
+  const schoolId = rows[0].id;
+  console.log('school:', schoolName, 'id', schoolId);
   const classNames = (process.env.SEED_CLASSES || '')
     .split(',').map((s) => s.trim()).filter(Boolean);
   for (const name of classNames) {

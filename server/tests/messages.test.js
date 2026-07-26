@@ -45,6 +45,19 @@ describe('M.kk.monthlyTop', () => {
   });
 });
 
+describe('newPendingPlayer', () => {
+  it('kk contains the game emoji and the name', () => {
+    const text = M.kk.newPendingPlayer('Айгерім');
+    expect(text).toContain('🎮');
+    expect(text).toContain('Айгерім');
+  });
+  it('ru contains the game emoji and the name', () => {
+    const text = M.ru.newPendingPlayer('Данияр');
+    expect(text).toContain('🎮');
+    expect(text).toContain('Данияр');
+  });
+});
+
 describe('onlineInvite', () => {
   it('kk contains lightning, sender name and the 90-second window', () => {
     const text = M.kk.onlineInvite('Айгерім');
