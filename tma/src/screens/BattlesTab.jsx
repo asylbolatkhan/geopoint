@@ -65,7 +65,7 @@ function BattleRow({ b, t, onOpen, showDecline, declineOpen, onDeclineToggle, on
     <Card className="flex flex-col gap-2">
       <div onClick={() => onOpen(b.id)} className="flex flex-col gap-1 cursor-pointer active:opacity-70">
         <div className="font-medium flex items-center gap-2 flex-wrap">
-          <span>⚔️ {b.other.name} · {b.other.class_name ?? (b.other.role === 'teacher' ? t.teacherBadge : '')}</span>
+          <span>⚔️ {b.other.name} · {b.other.class_name ?? (b.other.role === 'teacher' ? t.teacherBadge : b.other.role === 'player' ? t.playerBadge : '')}</span>
           {b.mode === 'online' && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-semibold">
               ⚡ {t.onlineLabel}
@@ -478,7 +478,7 @@ export default function BattlesTab({ lang, me }) {
       <div className="flex flex-col gap-4">
         <BackBtn onClick={() => { setBattleMode('async'); setPhase('list'); }} />
         <h2 className="text-lg font-bold">{battleMode === 'online' ? <>⚡ {t.onlineBattle}: {t.chooseOpponent}</> : t.chooseOpponent}</h2>
-        {me.role !== 'teacher' && (
+        {me.role === 'student' && (
           <div className="flex gap-2">
             <Chip selected={scope === 'myClass'} onClick={() => setScope('myClass')}>{t.myClass}</Chip>
             <Chip selected={scope === 'allSchool'} onClick={() => setScope('allSchool')}>{t.allSchool}</Chip>
@@ -503,7 +503,7 @@ export default function BattlesTab({ lang, me }) {
                     className="cursor-pointer active:opacity-70 flex items-center justify-between"
                   >
                     <span className="font-medium flex items-center gap-2">{s.name}{onlineDot(s.id)}</span>
-                    <span className="text-slate-400 text-sm">{s.class_name}</span>
+                    <span className="text-slate-400 text-sm">{s.class_name ?? (s.role === 'player' ? t.playerBadge : '')}</span>
                   </Card>
                 ))}
               </div>
@@ -549,7 +549,7 @@ export default function BattlesTab({ lang, me }) {
         <Card className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="font-medium">⚔️ {opponent.name}</span>
-            <span className="text-slate-400 text-sm">· {opponent.class_name ?? (opponent.role === 'teacher' ? t.teacherBadge : '')}</span>
+            <span className="text-slate-400 text-sm">· {opponent.class_name ?? (opponent.role === 'teacher' ? t.teacherBadge : opponent.role === 'player' ? t.playerBadge : '')}</span>
           </div>
           <H2HLine opponentId={opponent.id} lang={lang} />
         </Card>
