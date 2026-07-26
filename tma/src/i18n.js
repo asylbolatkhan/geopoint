@@ -40,7 +40,7 @@ export const T = {
     // Ойын
     question: 'Сұрақ', timeUp: 'Уақыт бітті',
     result: 'Нәтиже', correctAnswers: 'Дұрыс жауаптар', earnedPoints: 'Жиналған ұпай',
-    dailyCapNote: 'Жаттығудан күніне ең көп 30 ұпай жиналады',
+    dailyCapNote: 'Жаттығудан күніне ең көп 50 ұпай жиналады',
     review: 'Қателерді қарау', playAgain: 'Тағы ойнау', done: 'Дайын',
     yourAnswer: 'Сенің жауабың', rightAnswer: 'Дұрыс жауап', skipped: 'Жауапсыз',
     // Батлдар
@@ -171,7 +171,7 @@ export const T = {
     // Игра
     question: 'Вопрос', timeUp: 'Время вышло',
     result: 'Результат', correctAnswers: 'Правильные ответы', earnedPoints: 'Набрано очков',
-    dailyCapNote: 'За тренировку в день начисляется не больше 30 очков',
+    dailyCapNote: 'За тренировку в день начисляется не больше 50 очков',
     review: 'Разбор ошибок', playAgain: 'Играть снова', done: 'Готово',
     yourAnswer: 'Твой ответ', rightAnswer: 'Правильный ответ', skipped: 'Без ответа',
     // Баттлы

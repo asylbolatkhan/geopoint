@@ -281,6 +281,8 @@ export default function PlayTab({ lang }) {
       >
         {starting ? t.loading : startError ? t.retry : t.start}
       </button>
+
+      <p className="text-slate-500 text-xs text-center">💡 {t.dailyCapNote}</p>
     </div>
   );
 }
