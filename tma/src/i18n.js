@@ -111,7 +111,7 @@ export const T = {
       points500: { name: 'Жарты мың', desc: 'Барлығы 500 ұпай жинау' },
     },
     // Админ
-    adminPending: 'Өтінімдер', adminStudents: 'Оқушылар', adminClasses: 'Сыныптар', adminStats: 'Статистика',
+    adminPending: 'Өтінімдер', adminStudents: 'Қатысушылар', adminClasses: 'Сыныптар', adminStats: 'Статистика',
     approve: 'Қабылдау', reject: 'Қабылдамау', delete: 'Өшіру', save: 'Сақтау',
     noPending: 'Жаңа өтінім жоқ',
     addClass: 'Сынып қосу', className: 'Сынып атауы (мыс. 7Ә)',
@@ -244,7 +244,7 @@ export const T = {
       points500: { name: 'Полтысячи', desc: 'Набери 500 очков за всё время' },
     },
     // Админ
-    adminPending: 'Заявки', adminStudents: 'Ученики', adminClasses: 'Классы', adminStats: 'Статистика',
+    adminPending: 'Заявки', adminStudents: 'Участники', adminClasses: 'Классы', adminStats: 'Статистика',
     approve: 'Принять', reject: 'Отклонить', delete: 'Удалить', save: 'Сохранить',
     noPending: 'Новых заявок нет',
     addClass: 'Добавить класс', className: 'Название класса (напр. 7А)',
