@@ -56,6 +56,24 @@ export default function RatingTab({ lang, me }) {
   const [period, setPeriod] = useState('thisMonth'); // thisMonth | allTime | YYYY-MM
   const [months, setMonths] = useState([]);
 
+  // Админ кез келген мектептің рейтингін көре алады
+  const isAdmin = me?.role === 'admin';
+  const [schools, setSchools] = useState([]);
+  const [schoolId, setSchoolId] = useState(me?.school_id ?? null);
+
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    let ignore = false;
+    api('/schools')
+      .then((r) => {
+        if (ignore) return;
+        setSchools(r.schools || []);
+        setSchoolId((cur) => cur ?? r.schools?.[0]?.id ?? null);
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [isAdmin]);
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -82,6 +100,7 @@ export default function RatingTab({ lang, me }) {
     params.set('scope', scope);
     if (period === 'allTime') params.set('month', 'all');
     else if (period !== 'thisMonth') params.set('month', period);
+    if (isAdmin && scope !== 'global' && schoolId != null) params.set('schoolId', schoolId);
     api(`/leaderboard?${params.toString()}`)
       .then((r) => {
         if (!ignore) setRows(r.rows || []);
@@ -95,7 +114,7 @@ export default function RatingTab({ lang, me }) {
     return () => {
       ignore = true;
     };
-  }, [scope, period, reloadKey]);
+  }, [scope, period, reloadKey, isAdmin, schoolId]);
 
   const isClasses = scope === 'classes';
 
@@ -108,6 +127,16 @@ export default function RatingTab({ lang, me }) {
           </Chip>
         ))}
       </div>
+
+      {isAdmin && scope !== 'global' && schools.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {schools.map((s) => (
+            <Chip key={s.id} selected={schoolId === s.id} onClick={() => setSchoolId(s.id)}>
+              🏫 {s.name}
+            </Chip>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <Chip selected={period === 'thisMonth'} onClick={() => setPeriod('thisMonth')}>{t.thisMonth}</Chip>
