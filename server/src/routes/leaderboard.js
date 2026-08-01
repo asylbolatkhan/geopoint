@@ -7,8 +7,9 @@ import { isDbId } from '../ids.js';
 export const leaderboardRouter = Router();
 leaderboardRouter.use(requireApproved);
 
+// 'class' (өз сыныбы) UI-дан алынды, бірақ ашық тұрған ескі клиенттер 403 алмауы үшін қабылданады
 const SCOPES = {
-  student: ['class', 'school', 'classes'],
+  student: ['classes', 'school', 'class'],
   teacher: ['school', 'classes', 'teachers'],
   admin: ['school', 'classes', 'teachers', 'global'],
   player: ['global'],
@@ -71,22 +72,31 @@ leaderboardRouter.get('/', async (req, res, next) => {
       return res.json({ rows: rows.map((r, i) => ({ ...r, rank: i + 1 })) });
     }
 
+    // 'classes' — таңдалған БІР сыныптың ішіндегі оқушылар рейтингі
+    let classId = null;
     if (scope === 'classes') {
-      const { rows } = await query(
-        `SELECT c.id, c.name, COUNT(DISTINCT s.id)::int AS students,
-                ROUND(COALESCE(SUM(p.amount), 0)::numeric / GREATEST(COUNT(DISTINCT s.id), 1), 2)::float AS "avgPoints"
-         FROM classes c
-         JOIN students s ON s.class_id = c.id AND s.status = 'approved' AND s.role = 'student'
-         LEFT JOIN points_events p ON p.student_id = s.id AND ($1::text IS NULL OR p.month_key = $1)
-         WHERE c.school_id = $2
-         GROUP BY c.id
-         ORDER BY "avgPoints" DESC, c.name`,
-        [month, school]
-      );
-      return res.json({ rows: rows.map((r, i) => ({ ...r, rank: i + 1 })) });
+      if (req.query.classId !== undefined) {
+        const requested = Number(req.query.classId);
+        if (!isDbId(requested)) return res.status(400).json({ error: 'bad_class' });
+        const { rows } = await query(
+          'SELECT id FROM classes WHERE id = $1 AND school_id = $2',
+          [requested, school]
+        );
+        if (rows.length === 0) return res.status(400).json({ error: 'bad_class' });
+        classId = requested;
+      } else {
+        // Әдепкі: өз сыныбы (сол мектепте болса), әйтпесе мектептің алғашқы сыныбы
+        const { rows } = await query(
+          `SELECT id FROM classes WHERE school_id = $1
+           ORDER BY (id = $2) DESC, name LIMIT 1`,
+          [school, req.student.class_id]
+        );
+        classId = rows[0]?.id ?? null;
+      }
+      if (classId === null) return res.json({ rows: [], classId: null });
     }
 
-    const classFilter = scope === 'class' ? req.student.class_id : null;
+    const classFilter = scope === 'class' ? req.student.class_id : classId;
     const { rows } = await query(
       `SELECT s.id, s.name, c.name AS class_name, COALESCE(SUM(p.amount), 0)::int AS points
        FROM students s
@@ -100,6 +110,8 @@ leaderboardRouter.get('/', async (req, res, next) => {
        LIMIT 100`,
       [month, classFilter, school]
     );
-    res.json({ rows: rows.map((r, i) => ({ ...r, rank: i + 1 })) });
+    const body = { rows: rows.map((r, i) => ({ ...r, rank: i + 1 })) };
+    if (scope === 'classes') body.classId = classId;
+    res.json(body);
   } catch (e) { next(e); }
 });

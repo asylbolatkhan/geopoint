@@ -4,7 +4,7 @@ import { haptic } from '../telegram';
 import { useT } from '../i18n';
 import Card from '../components/Card';
 
-const SCOPES_STUDENT = ['class', 'school', 'classes'];
+const SCOPES_STUDENT = ['classes', 'school'];
 const SCOPES_TEACHER = ['school', 'classes', 'teachers'];
 const SCOPES_ADMIN = ['school', 'classes', 'teachers', 'global'];
 const SCOPES_PLAYER = ['global'];
@@ -45,7 +45,7 @@ function defaultScopeFor(role) {
   if (role === 'teacher') return 'teachers';
   if (role === 'admin') return 'school';
   if (role === 'player') return 'global';
-  return 'class';
+  return 'classes';
 }
 
 export default function RatingTab({ lang, me }) {
@@ -74,6 +74,38 @@ export default function RatingTab({ lang, me }) {
     return () => { ignore = true; };
   }, [isAdmin]);
 
+  // «Сыныптар» — бір сыныпты таңдап, сол сыныптың оқушылар рейтингін көру
+  const effectiveSchool = isAdmin ? schoolId : (me?.school_id ?? null);
+  const [classes, setClasses] = useState([]);
+  const [classId, setClassId] = useState(null);
+
+  useEffect(() => {
+    if (scope !== 'classes' || effectiveSchool == null) return undefined;
+    let ignore = false;
+    api(`/classes?schoolId=${effectiveSchool}`)
+      .then((r) => {
+        if (ignore) return;
+        const list = r.classes || [];
+        setClasses(list);
+        setClassId((cur) => {
+          if (cur != null && list.some((c) => c.id === cur)) return cur;
+          if (list.some((c) => c.id === me?.class_id)) return me.class_id;
+          return list[0]?.id ?? null;
+        });
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [scope, effectiveSchool, me?.class_id]);
+
+  // Мектеп ауысса ескі сынып қалып қоймауы керек. Рендер кезінде тазалаймыз — эффект болса,
+  // сол коммитте рейтинг сұранысы әлі ескі classId-мен кетіп, 400 bad_class шығар еді.
+  const [prevSchool, setPrevSchool] = useState(effectiveSchool);
+  if (prevSchool !== effectiveSchool) {
+    setPrevSchool(effectiveSchool);
+    setClasses([]);
+    setClassId(null);
+  }
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -101,9 +133,13 @@ export default function RatingTab({ lang, me }) {
     if (period === 'allTime') params.set('month', 'all');
     else if (period !== 'thisMonth') params.set('month', period);
     if (isAdmin && scope !== 'global' && schoolId != null) params.set('schoolId', schoolId);
+    if (scope === 'classes' && classId != null) params.set('classId', classId);
     api(`/leaderboard?${params.toString()}`)
       .then((r) => {
-        if (!ignore) setRows(r.rows || []);
+        if (ignore) return;
+        setRows(r.rows || []);
+        // Сынып жібермеген болсақ, сервер таңдаған сыныпты чиптерде белгілеу
+        if (r.classId != null) setClassId((cur) => cur ?? r.classId);
       })
       .catch(() => {
         if (!ignore) setError(true);
@@ -114,9 +150,7 @@ export default function RatingTab({ lang, me }) {
     return () => {
       ignore = true;
     };
-  }, [scope, period, reloadKey, isAdmin, schoolId]);
-
-  const isClasses = scope === 'classes';
+  }, [scope, period, reloadKey, isAdmin, schoolId, classId]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -133,6 +167,16 @@ export default function RatingTab({ lang, me }) {
           {schools.map((s) => (
             <Chip key={s.id} selected={schoolId === s.id} onClick={() => setSchoolId(s.id)}>
               🏫 {s.name}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {scope === 'classes' && classes.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {classes.map((c) => (
+            <Chip key={c.id} selected={classId === c.id} onClick={() => setClassId(c.id)}>
+              {c.name}
             </Chip>
           ))}
         </div>
@@ -160,7 +204,7 @@ export default function RatingTab({ lang, me }) {
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((r) => {
-            const isMe = !isClasses && me?.id === r.id;
+            const isMe = me?.id === r.id;
             return (
               <Card
                 key={r.id}
@@ -171,15 +215,15 @@ export default function RatingTab({ lang, me }) {
                   <div className="min-w-0">
                     <div className="font-medium truncate">{r.name}</div>
                     <div className="text-slate-400 text-sm truncate">
-                      {isClasses
-                        ? `${r.students} ${t.students}`
-                        : scope === 'teachers' ? t.teacherBadge : scope === 'global' ? '' : (r.class_name ?? '')}
+                      {scope === 'teachers'
+                        ? t.teacherBadge
+                        : (scope === 'global' || scope === 'classes') ? '' : (r.class_name ?? '')}
                     </div>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="font-bold text-sky-400">{isClasses ? r.avgPoints : r.points}</div>
-                  <div className="text-slate-500 text-xs">{isClasses ? t.avgPoints : t.points}</div>
+                  <div className="font-bold text-sky-400">{r.points}</div>
+                  <div className="text-slate-500 text-xs">{t.points}</div>
                 </div>
               </Card>
             );
