@@ -6,7 +6,7 @@ import Card from '../components/Card';
 import FlagImg from '../components/FlagImg';
 import { COUNTRY_BY_ID } from '@shared/data/index.js';
 
-const SECTIONS = ['pending', 'students', 'classes', 'stats'];
+const SECTIONS = ['pending', 'students', 'classes', 'stats', 'broadcast'];
 
 function Spinner() {
   return <div className="w-10 h-10 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" />;
@@ -332,21 +332,143 @@ function StudentsSection({ t, lang, classes, list, loading, error, onRetry, onMu
   if (error) return <ErrorRetry t={t} onRetry={onRetry} />;
   if (list.length === 0) return <p className="text-slate-400 text-center py-8">{t.emptyBoard}</p>;
 
+  // Категорияларға бөлу: мектеп мүшелері (мектеп атауы бойынша) + жеке ойыншылар
+  const schoolMembers = list.filter((s) => s.school_id != null);
+  const players = list.filter((s) => s.school_id == null);
+  const groups = [];
+  for (const s of schoolMembers) {
+    let g = groups.find((x) => x.key === `school-${s.school_id}`);
+    if (!g) {
+      g = { key: `school-${s.school_id}`, title: `🏫 ${s.school_name ?? ''}`, rows: [] };
+      groups.push(g);
+    }
+    g.rows.push(s);
+  }
+  if (players.length > 0) {
+    groups.push({ key: 'players', title: `🎮 ${t.playersGroup}`, rows: players });
+  }
+
+  const renderRow = (s) => (
+    <StudentRow
+      key={s.id}
+      t={t}
+      lang={lang}
+      s={s}
+      classes={classes}
+      expanded={expandedId === s.id}
+      onToggle={() => setExpandedId((id) => (id === s.id ? null : s.id))}
+      onMutated={onMutated}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-2">
-      {list.map((s) => (
-        <StudentRow
-          key={s.id}
-          t={t}
-          lang={lang}
-          s={s}
-          classes={classes}
-          expanded={expandedId === s.id}
-          onToggle={() => setExpandedId((id) => (id === s.id ? null : s.id))}
-          onMutated={onMutated}
-        />
+      {groups.map((g) => (
+        <div key={g.key} className="flex flex-col gap-2">
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-sm font-semibold text-slate-300">{g.title}</span>
+            <span className="text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5">
+              {g.rows.length}
+            </span>
+          </div>
+          {g.rows.map(renderRow)}
+        </div>
       ))}
     </div>
+  );
+}
+
+// ---------- Broadcast ----------
+
+function BroadcastSection({ t }) {
+  const [audience, setAudience] = useState('all');
+  const [text, setText] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sentCount, setSentCount] = useState(null);
+  const [error, setError] = useState(false);
+
+  const audiences = [
+    { key: 'all', label: t.audienceAll },
+    { key: 'school', label: t.audienceSchool },
+    { key: 'players', label: t.audiencePlayers },
+  ];
+
+  const send = async () => {
+    setSending(true);
+    setError(false);
+    try {
+      const r = await api('/admin/broadcast', { method: 'POST', body: { text: text.trim(), audience } });
+      haptic('medium');
+      setSentCount(r.sent);
+      setText('');
+      setConfirming(false);
+    } catch {
+      setError(true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {audiences.map((a) => (
+          <button
+            key={a.key}
+            type="button"
+            onClick={() => { haptic('light'); setAudience(a.key); setConfirming(false); }}
+            className={`px-3 py-2 rounded-xl text-sm font-medium border ${
+              audience === a.key ? 'bg-sky-500 text-white border-sky-400' : 'bg-slate-800 border-slate-700 text-slate-300'
+            }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => { setText(e.target.value); setSentCount(null); setConfirming(false); }}
+        maxLength={3500}
+        rows={5}
+        placeholder={t.broadcastPlaceholder}
+        className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 outline-none focus:border-sky-500 resize-none"
+      />
+      {error && <p className="text-red-400 text-sm">{t.errorGeneric}</p>}
+      {sentCount !== null && <p className="text-green-400 text-sm">{t.broadcastSent(sentCount)}</p>}
+      {confirming ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-slate-300 text-sm">{t.broadcastConfirm}</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={send}
+              disabled={sending}
+              className="flex-1 rounded-xl py-3 font-bold bg-sky-500 text-white disabled:opacity-50"
+            >
+              {t.yes}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={sending}
+              className="flex-1 rounded-xl py-3 font-bold bg-slate-800 border border-slate-700 text-slate-300"
+            >
+              {t.cancel}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { haptic('light'); setConfirming(true); }}
+          disabled={!text.trim() || sending}
+          className="rounded-xl py-3 font-bold bg-sky-500 text-white disabled:opacity-50"
+        >
+          {t.broadcastSend}
+        </button>
+      )}
+    </Card>
   );
 }
 
@@ -765,13 +887,13 @@ export default function AdminTab({ lang }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-4 gap-1 bg-slate-800 rounded-xl p-1">
+      <div className="flex gap-1 bg-slate-800 rounded-xl p-1 overflow-x-auto">
         {SECTIONS.map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => switchSection(s)}
-            className={`relative py-2 rounded-lg text-xs font-semibold ${
+            className={`relative py-2 px-3 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 ${
               section === s ? 'bg-sky-500 text-white' : 'text-slate-400'
             }`}
           >
@@ -823,6 +945,7 @@ export default function AdminTab({ lang }) {
       {section === 'stats' && (
         <StatsSection t={t} lang={lang} data={stats} loading={statsLoading} error={statsError} onRetry={fetchStats} />
       )}
+      {section === 'broadcast' && <BroadcastSection t={t} />}
     </div>
   );
 }

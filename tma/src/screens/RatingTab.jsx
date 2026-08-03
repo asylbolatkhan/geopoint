@@ -6,7 +6,7 @@ import Card from '../components/Card';
 
 const SCOPES_STUDENT = ['classes', 'school'];
 const SCOPES_TEACHER = ['school', 'classes', 'teachers'];
-const SCOPES_ADMIN = ['school', 'classes', 'teachers', 'global'];
+const SCOPES_ADMIN = ['school', 'classes', 'global'];
 const SCOPES_PLAYER = ['global'];
 
 function Chip({ selected, onClick, children }) {

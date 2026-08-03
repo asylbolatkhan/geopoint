@@ -28,7 +28,7 @@ export default function PendingScreen({ lang, role, onApproved }) {
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center gap-4 p-6 text-center">
       <div className="text-6xl">⏳</div>
       <h1 className="text-xl font-bold">{t.pendingTitle}</h1>
-      <p className="text-slate-400 max-w-xs">{role === 'player' ? t.pendingTextPlayer : t.pendingText}</p>
+      <p className="text-slate-400 max-w-xs">{t.pendingText}</p>
       <button
         type="button"
         onClick={() => {

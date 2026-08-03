@@ -45,14 +45,14 @@ describe('M.kk.monthlyTop', () => {
   });
 });
 
-describe('newPendingPlayer', () => {
+describe('newUserJoined', () => {
   it('kk contains the game emoji and the name', () => {
-    const text = M.kk.newPendingPlayer('Айгерім');
+    const text = M.kk.newUserJoined('Айгерім');
     expect(text).toContain('🎮');
     expect(text).toContain('Айгерім');
   });
   it('ru contains the game emoji and the name', () => {
-    const text = M.ru.newPendingPlayer('Данияр');
+    const text = M.ru.newUserJoined('Данияр');
     expect(text).toContain('🎮');
     expect(text).toContain('Данияр');
   });

@@ -21,7 +21,6 @@ export const T = {
     // Күту
     pendingTitle: 'Өтінім жіберілді ⏳',
     pendingText: 'Мұғалім растағанша күте тұр. Расталған кезде ботқа хабарлама келеді.',
-    pendingTextPlayer: 'Тіркелуіңді әкімші растағанша сәл күте тұр 🙌',
     checkStatus: 'Тексеру',
     // Табтар
     tabPlay: 'Ойнау', tabBattles: 'Батлдар', tabRating: 'Рейтинг', tabProfile: 'Профиль', tabAdmin: 'Басқару',
@@ -112,6 +111,11 @@ export const T = {
     },
     // Админ
     adminPending: 'Өтінімдер', adminStudents: 'Қатысушылар', adminClasses: 'Сыныптар', adminStats: 'Статистика',
+    adminBroadcast: 'Хабарлама', playersGroup: 'Жеке ойыншылар',
+    audienceAll: 'Барлығына', audienceSchool: 'Лицейге', audiencePlayers: 'Жеке ойыншыларға',
+    broadcastPlaceholder: 'Хабарлама мәтіні...', broadcastSend: 'Жіберу',
+    broadcastConfirm: 'Барлық таңдалған адамдарға жіберілсін бе?',
+    broadcastSent: (n) => `Жіберілді: ${n} адамға ✅`,
     approve: 'Қабылдау', reject: 'Қабылдамау', delete: 'Өшіру', save: 'Сақтау',
     noPending: 'Жаңа өтінім жоқ',
     addClass: 'Сынып қосу', className: 'Сынып атауы (мыс. 7Ә)',
@@ -154,7 +158,6 @@ export const T = {
     // Ожидание
     pendingTitle: 'Заявка отправлена ⏳',
     pendingText: 'Дождись подтверждения учителя. Когда подтвердят, придёт сообщение в бот.',
-    pendingTextPlayer: 'Подожди, пока администратор подтвердит регистрацию 🙌',
     checkStatus: 'Проверить',
     // Табы
     tabPlay: 'Играть', tabBattles: 'Баттлы', tabRating: 'Рейтинг', tabProfile: 'Профиль', tabAdmin: 'Управление',
@@ -245,6 +248,11 @@ export const T = {
     },
     // Админ
     adminPending: 'Заявки', adminStudents: 'Участники', adminClasses: 'Классы', adminStats: 'Статистика',
+    adminBroadcast: 'Рассылка', playersGroup: 'Свободные игроки',
+    audienceAll: 'Всем', audienceSchool: 'Лицею', audiencePlayers: 'Свободным игрокам',
+    broadcastPlaceholder: 'Текст сообщения...', broadcastSend: 'Отправить',
+    broadcastConfirm: 'Отправить всем выбранным?',
+    broadcastSent: (n) => `Отправлено: ${n} ✅`,
     approve: 'Принять', reject: 'Отклонить', delete: 'Удалить', save: 'Сохранить',
     noPending: 'Новых заявок нет',
     addClass: 'Добавить класс', className: 'Название класса (напр. 7А)',

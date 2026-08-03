@@ -46,19 +46,20 @@ authRouter.post('/register', async (req, res, next) => {
       return res.status(400).json({ error: 'bad_role' });
     }
     if (roleValue === 'player') {
-      // Жеке ойыншы: мектепке/сыныпқа байланбайды.
+      // Жеке ойыншы: мектепке/сыныпқа байланбайды және РАСТАУСЫЗ бірден кіреді.
+      // Админге тек ақпараттық хабарлама барады.
       let rows;
       try {
         ({ rows } = await query(
-          `INSERT INTO students (tg_user_id, name, lang, role)
-           VALUES ($1, $2, $3, 'player') RETURNING *`,
+          `INSERT INTO students (tg_user_id, name, lang, role, status)
+           VALUES ($1, $2, $3, 'player', 'approved') RETURNING *`,
           [req.tgUser.id, name.trim(), lang]
         ));
       } catch (e) {
         if (e.code === '23505') return res.status(409).json({ error: 'already_registered' });
         throw e;
       }
-      notifyAdmins((adminLang) => M[adminLang].newPendingPlayer(name.trim()));
+      notifyAdmins((adminLang) => M[adminLang].newUserJoined(name.trim()));
       return res.json({ student: rows[0] });
     }
     const schoolIdNum = Number(schoolId);

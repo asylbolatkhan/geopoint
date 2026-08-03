@@ -3,7 +3,7 @@ import { api, ApiError } from '../api';
 import { tgUserLang, haptic } from '../telegram';
 import { useT } from '../i18n';
 
-const ROLES = ['student', 'teacher', 'player'];
+const ROLES = ['student', 'player'];
 
 const chipCls = (active) =>
   `px-4 py-2 rounded-xl text-sm font-medium border ${

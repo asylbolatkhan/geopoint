@@ -66,6 +66,26 @@ export async function notifyPlayers(textByLang) {
   }
 }
 
+// Админнің қолмен таратуы. Аудитория: 'all' | 'school' | 'players'.
+// Админдердің өзіне жіберілмейді. Жіберілген адам санын қайтарады.
+export async function broadcast(audience, text) {
+  if (!bot) return 0;
+  const where =
+    audience === 'school' ? 'AND school_id IS NOT NULL'
+    : audience === 'players' ? "AND role = 'player'"
+    : '';
+  const { rows } = await query(
+    `SELECT tg_user_id, lang FROM students WHERE status = 'approved' AND role <> 'admin' ${where}`
+  );
+  let sent = 0;
+  for (const s of rows) {
+    await notify(s.tg_user_id, text, s.lang);
+    sent++;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return sent;
+}
+
 export function startBot() {
   if (!bot) {
     console.log('BOT_TOKEN not set — bot disabled');

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAdmin } from '../authMiddleware.js';
-import { notify } from '../bot.js';
+import { notify, broadcast } from '../bot.js';
 import { M } from '../messages.js';
 import { monthKey } from '../points.js';
 import { correctIndexes } from '../quiz.js';
@@ -228,6 +228,21 @@ adminRouter.delete('/schools/:id', async (req, res, next) => {
     const { rowCount } = await query('DELETE FROM schools WHERE id = $1', [id]);
     if (!rowCount) return res.status(404).json({ error: 'not_found' });
     res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// Админнің қолмен хабарлама таратуы (ойынға шақыру т.б.)
+adminRouter.post('/broadcast', async (req, res, next) => {
+  try {
+    const { text, audience } = req.body || {};
+    if (typeof text !== 'string' || !text.trim() || text.trim().length > 3500) {
+      return res.status(400).json({ error: 'bad_text' });
+    }
+    if (!['all', 'school', 'players'].includes(audience)) {
+      return res.status(400).json({ error: 'bad_audience' });
+    }
+    const sent = await broadcast(audience, `📢 ${text.trim()}`);
+    res.json({ sent });
   } catch (e) { next(e); }
 });
 
