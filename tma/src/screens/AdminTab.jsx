@@ -327,6 +327,7 @@ function StudentRow({ t, lang, s, classes, expanded, onToggle, onMutated }) {
 
 function StudentsSection({ t, lang, classes, list, loading, error, onRetry, onMutated }) {
   const [expandedId, setExpandedId] = useState(null);
+  const [groupKey, setGroupKey] = useState(null);
 
   if (loading) return <Spinner />;
   if (error) return <ErrorRetry t={t} onRetry={onRetry} />;
@@ -348,6 +349,9 @@ function StudentsSection({ t, lang, classes, list, loading, error, onRetry, onMu
     groups.push({ key: 'players', title: `🎮 ${t.playersGroup}`, rows: players });
   }
 
+  // Тізім жаңарғанда таңдалған топ жоғалып кетуі мүмкін — сонда біріншісіне қайтамыз
+  const active = groups.find((g) => g.key === groupKey) ?? groups[0];
+
   const renderRow = (s) => (
     <StudentRow
       key={s.id}
@@ -363,17 +367,29 @@ function StudentsSection({ t, lang, classes, list, loading, error, onRetry, onMu
 
   return (
     <div className="flex flex-col gap-2">
-      {groups.map((g) => (
-        <div key={g.key} className="flex flex-col gap-2">
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-sm font-semibold text-slate-300">{g.title}</span>
-            <span className="text-xs font-bold text-slate-400 bg-slate-800 border border-slate-700 rounded-full px-2 py-0.5">
-              {g.rows.length}
-            </span>
-          </div>
-          {g.rows.map(renderRow)}
+      {groups.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {groups.map((g) => {
+            const selected = g.key === active.key;
+            return (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => { haptic('light'); setGroupKey(g.key); setExpandedId(null); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border shrink-0 ${
+                  selected ? 'bg-sky-500 text-white border-sky-400' : 'bg-slate-800 border-slate-700 text-slate-300'
+                }`}
+              >
+                <span className="whitespace-nowrap">{g.title}</span>
+                <span className={`text-xs font-bold rounded-full px-1.5 ${selected ? 'bg-sky-600/70' : 'bg-slate-900 text-slate-400'}`}>
+                  {g.rows.length}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      ))}
+      )}
+      {active.rows.map(renderRow)}
     </div>
   );
 }
